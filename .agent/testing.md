@@ -2,6 +2,21 @@
 
 Testing must demonstrate behavior and safety, with controlled fixtures or test copies for any test that modifies user records. Never target uncontrolled user data.
 
+## Tooling and commands
+
+- **Frontend:** Vitest runs React unit/component tests in jsdom with React Testing Library and @testing-library/jest-dom. From frontend/, run npm run test.
+- **Backend:** pytest runs unit/integration tests. FastAPI route behavior uses the synchronous fastapi.testclient.TestClient, backed by httpx. From backend/, install the test extra with python -m pip install -e ".[test]", then run python -m pytest.
+
+FND-03 does not add browser automation, external databases, mocking frameworks, or async-test plugins. Tests use application-local commands; no root test runner is selected.
+
+## Controlled fixture policy
+
+- Use synthetic, non-secret identities only. The baseline fixtures provide distinct user_a, user_b, and privileged_actor principals; they are test data, not Supabase users, JWTs, or service-role credentials.
+- Each test creates only the records it needs and cleans up its own mutable state. Tests must never target a developer, staging, or production account, database, or provider.
+- Authorization/isolation tests use at least two distinct fixture users. They must prove cross-user access is denied rather than relying on frontend filtering.
+- Privileged-access tests must separately prove verified caller identity, explicit authorization, and owner filtering. A privileged fixture may not be treated as evidence that access is permitted.
+- Add database-backed fixtures only after the database and migration approach are approved; they must use an isolated test database or transaction/cleanup strategy.
+
 ## Test layers
 
 - **Unit:** validation, prioritization logic, permission checks, memory state transitions, provider adapters, and output parsing.
