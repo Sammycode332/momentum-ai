@@ -4,11 +4,11 @@ Security and multi-user data isolation are foundational release criteria, not la
 
 ## Identity and access
 
-- Use Supabase Auth for authentication. Verify credentials in the backend for every private API request and derive the acting user from verified claims.
+- Use Neon Auth for authentication. Verify bearer JWTs in the backend for every private API request against the configured JWKS and issuer, and derive the acting user from verified claims.
 - Authorize every private resource/action server-side. Reject client-supplied ownership assertions unless they match verified identity and authorization rules.
-- Enable and test PostgreSQL RLS for every user-owned table. Default to deny; write explicit owner-scoped policies.
-- Supabase `service_role` credentials bypass RLS. They are backend-only secrets and must never be shipped to clients, exposed in logs, or used as proof that a request is authorized.
-- A privileged/backend service-role operation must verify the caller’s identity, perform explicit server-side authorization, and apply ownership filtering to every private read or mutation. Prefer user-scoped access that remains subject to RLS where applicable.
+- Enable and test Neon PostgreSQL RLS for every user-owned table. Default to deny; write explicit owner-scoped policies.
+- Privileged database credentials are backend-only secrets and must never be shipped to clients, exposed in logs, or used as proof that a request is authorized.
+- A privileged backend operation must verify the caller’s identity, perform explicit server-side authorization, and apply ownership filtering to every private read or mutation. Prefer user-scoped access that remains subject to RLS where applicable.
 - Frontend route guards, hidden controls, and client filtering improve usability only; they are not security boundaries.
 
 ## Data and API protection
@@ -29,4 +29,4 @@ Security and multi-user data isolation are foundational release criteria, not la
 
 ## Verification minimum
 
-Before release, demonstrate invalid-token rejection; tenant isolation for all CRUD operations at API, user-scoped/RLS, and service-role paths; reviewed views/RPCs/functions/admin paths; no secret leakage in repository/client bundle/log samples; validated AI outputs; memory approval enforcement; and autonomous reprioritization/rescheduling boundary, approval, and recovery behavior.
+Before release, demonstrate invalid-token rejection; tenant isolation for all CRUD operations at API, user-scoped/RLS, and privileged database paths; reviewed views/RPCs/functions/admin paths; no secret leakage in repository/client bundle/log samples; validated AI outputs; memory approval enforcement; and autonomous reprioritization/rescheduling boundary, approval, and recovery behavior.

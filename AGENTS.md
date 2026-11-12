@@ -4,7 +4,7 @@
 
 Momentum AI is a multi-user personal AI growth and execution assistant. It connects a user’s projects, learning, academics, career opportunities, tasks, and commitments to help them decide and execute what matters next. It is not a generic task list or motivational chatbot.
 
-The agreed technical direction is React + TypeScript + Vite with Tailwind CSS v4 on the frontend, Python + FastAPI on the backend, Supabase PostgreSQL and Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. Hosting, scheduling, and AI provider remain open.
+The agreed technical direction is React + TypeScript + Vite with Tailwind CSS v4 on the frontend, Python + FastAPI on the backend, Neon PostgreSQL and Neon Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. Hosting, scheduling, and AI provider remain open.
 
 ## Required reading order
 
@@ -54,15 +54,15 @@ Respect the monorepo layout in ADR-009. Put frontend code in `frontend/`, backen
 
 ### Database
 
-- Use Supabase PostgreSQL. Every user-owned row must carry an owner identity and be protected with PostgreSQL Row Level Security (RLS).
-- Supabase `service_role` credentials bypass RLS. Keep them backend-only; any privileged operation must first verify identity and perform explicit server-side authorization and ownership filtering. Prefer user-scoped access that is subject to RLS where applicable.
+- Use Neon PostgreSQL. Every user-owned row must carry an owner identity and be protected with PostgreSQL Row Level Security (RLS).
+- Privileged database credentials can bypass ordinary user-scoped controls. Keep them backend-only; any privileged operation must first verify identity and perform explicit server-side authorization and ownership filtering. Prefer user-scoped access that is subject to RLS where applicable.
 - Use reviewed, reversible migration practices after the migration tool is selected. Never modify production data manually without an approved operational procedure.
 - Design indexes and constraints from actual access patterns; preserve auditability for memory approvals and autonomous changes.
 
 ## Authentication, authorization, and security
 
-- Supabase Auth authenticates users; backend services must verify tokens and enforce authorization for every private resource.
-- Enforce tenant boundaries both in backend logic and database RLS. Never trust client-supplied user IDs or frontend filtering. RLS is not a safeguard for service-role queries.
+- Neon Auth authenticates users; backend services must verify tokens and enforce authorization for every private resource.
+- Enforce tenant boundaries both in backend logic and database RLS. Never trust client-supplied user IDs or frontend filtering. RLS is not a safeguard for privileged database queries.
 - Keep secrets in environment-managed configuration, never source control, UI bundles, logs, prompts, or error messages.
 - Treat AI memory, prompts, recommendation inputs, and AI-provider outputs as sensitive user data. Follow `.agent/security.md`.
 

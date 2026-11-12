@@ -15,6 +15,8 @@ The MVP is a secure, broader first release. It deliberately retains the followin
 
 The delivery sequence is foundation (including the minimal online deployment baseline) → authentication/RLS → onboarding/core records → dashboard → AI planning/memory → controlled autonomy → evaluations → validated MVP deployment → production-hardening/release checks. Each addition must preserve user isolation and have evidence-based acceptance criteria. Online MVP deployment is required from the beginning; production hardening and release operations are separate later work.
 
+ID-01 authentication is complete. The project owner verified the Neon Auth account and session flows and protected FastAPI access. User-owned schemas and RLS remain in ID-02. See the [progress log](progress.md) for verification evidence.
+
 ## Stretch / post-MVP
 
 - Background monitoring.

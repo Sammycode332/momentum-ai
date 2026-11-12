@@ -41,4 +41,4 @@ python -c "from app.main import app; assert app is not None"
 
 ## Deferred choices
 
-FND-01 does not introduce pnpm workspaces, Turborepo, Nx, Docker, Poetry, uv, a root task runner, a UI component library, a backend test framework, Supabase configuration, secrets, database migrations, authentication, CORS configuration, or frontend-to-backend API communication. These need their own approved tasks and decisions.
+FND-01 did not introduce pnpm workspaces, Turborepo, Nx, Docker, Poetry, uv, a root task runner, a UI component library, a backend test framework, provider configuration, secrets, database migrations, authentication, CORS configuration, or frontend-to-backend API communication. Those choices were deferred to later approved tasks and decisions.

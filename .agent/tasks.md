@@ -18,7 +18,7 @@ FND-01 completed at `dcfd151` after the documented frontend and backend checks. 
 
 | ID | Description | Dependencies | Acceptance criteria | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| ID-01 | Integrate Supabase Auth and backend credential verification | FND-01, FND-02, FND-05 | Private API rejects missing/invalid credentials and exposes verified identity to services | P0 | proposed |
+| ID-01 | Integrate Neon Auth and backend credential verification | FND-01, FND-02, FND-05 | Private API rejects missing/invalid credentials and exposes verified identity to services | P0 | complete |
 | ID-02 | Design initial user-owned schema and RLS policies | ID-01, FND-03 | Owner-scoped records and policies exist; user-scoped and service-role access paths both reject cross-user reads/writes | P0 | proposed |
 | ID-03 | Create onboarding profile/context flow | ID-02; BLK-02 | Authenticated user can complete short onboarding; records are private and validated | P0 | blocked |
 

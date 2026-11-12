@@ -2,7 +2,7 @@
 
 ## Confirmed system direction
 
-The intended system comprises a React + TypeScript + Vite frontend styled with Tailwind CSS, a Python + FastAPI backend, Supabase PostgreSQL with Supabase Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start. No source implementation exists yet.
+The intended system comprises a React + TypeScript + Vite frontend styled with Tailwind CSS, a Python + FastAPI backend, Neon PostgreSQL with Neon Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start.
 
 ## Repository layout (ADR-009)
 
@@ -17,7 +17,7 @@ The minimum bootstrap is defined by ADR-010. `frontend/` will use the standard R
 
 ## Responsibilities and communication
 
-`React client → authenticated REST API → FastAPI domain services → Supabase PostgreSQL` is the intended primary path. The client obtains user authentication through Supabase Auth and sends the resulting credential to the API. The API verifies the credential, derives identity server-side, validates input, authorizes the operation, and invokes domain services. User-owned database rows are also protected by RLS.
+`React client → authenticated REST API → FastAPI domain services → Neon PostgreSQL` is the intended primary path. The client obtains user authentication through Neon Auth and sends the resulting bearer token to the API. The API verifies the token against Neon Auth’s JWKS, pins its issuer, derives identity server-side, validates input, authorizes the operation, and invokes domain services. User-owned database rows are also protected by RLS.
 
 The backend owns business rules, authorization, AI orchestration, memory proposal lifecycle, and permission enforcement. The frontend owns interaction and presentation only; it may not make trust decisions about user ownership.
 
@@ -27,25 +27,25 @@ Use React + TypeScript + Vite in `frontend/`, with Tailwind CSS v4 through its V
 
 ## Backend
 
-Use FastAPI in `backend/`. The minimum bootstrap uses a standard `backend/pyproject.toml`, a Python virtual environment with pip, Uvicorn for local development, and `backend/app/main.py` as the minimal application module. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Supabase and hosted-AI SDK details. No custom application HTTP endpoint, including `/health`, is part of the bootstrap; FastAPI's framework-generated documentation and OpenAPI routes may remain enabled. The internal backend layout beyond the minimal module, validation library choices beyond FastAPI’s normal facilities, test framework, background-job strategy, and deployment topology are unresolved.
+Use FastAPI in `backend/`. The minimum bootstrap uses a standard `backend/pyproject.toml`, a Python virtual environment with pip, Uvicorn for local development, and `backend/app/main.py` as the minimal application module. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Neon and hosted-AI SDK details. No custom application HTTP endpoint, including `/health`, is part of the bootstrap; FastAPI's framework-generated documentation and OpenAPI routes may remain enabled. The internal backend layout beyond the minimal module, validation library choices beyond FastAPI’s normal facilities, test framework, background-job strategy, and deployment topology are unresolved.
 
 ## Data and isolation
 
-Supabase PostgreSQL is the system of record. Expected user-owned domains include profile/onboarding context, projects, tasks, learning goals/progress, academic activities, opportunities, AI memory, memory proposals, and agent action/audit records. Specific tables, schemas, and relationships are not yet designed.
+Neon PostgreSQL is the system of record. Expected user-owned domains include profile/onboarding context, projects, tasks, learning goals/progress, academic activities, opportunities, AI memory, memory proposals, and agent action/audit records. Specific tables, schemas, and relationships are not yet designed.
 
 Every private record must be scoped to an authenticated owner and protected by RLS plus server-side authorization. Ownership is derived from verified identity; never accepted from the client as authority. Cross-user access is denied by default.
 
-Supabase `service_role` credentials bypass RLS and are therefore not evidence of authorization. They may exist only in trusted backend runtime and never in browser code. Before a privileged query or mutation, the backend must verify the caller’s identity, authorize the requested action, and apply explicit ownership filtering. Prefer user-scoped database access subject to RLS where practical. Views, RPCs, privileged functions, and administrative access paths require security review because they can alter or bypass the intended policy boundary.
+Privileged database credentials are not evidence of authorization. They may exist only in trusted backend runtime and never in browser code. Before a privileged query or mutation, the backend must verify the caller’s identity, authorize the requested action, and apply explicit ownership filtering. Prefer user-scoped database access subject to RLS where practical. Views, RPCs, privileged functions, and administrative access paths require security review because they can alter or bypass the intended policy boundary.
 
 ## Authentication and authorization flow
 
-1. The frontend authenticates a user with Supabase Auth.
+1. The frontend authenticates a user with Neon Auth.
 2. For private API requests, it submits the authenticated credential using the agreed transport.
-3. FastAPI verifies it with the selected supported mechanism, derives the principal, validates input, and authorizes the requested resource/action.
-4. User-scoped database access runs with policies that prevent cross-user reads or writes. A service-role path instead applies explicit backend authorization and owner filtering, because it bypasses RLS.
+3. FastAPI verifies the bearer JWT with Neon Auth’s configured JWKS, issuer, expiration, subject, and supported signing algorithm; it then derives the principal, validates input, and authorizes the requested resource/action.
+4. User-scoped database access runs with policies that prevent cross-user reads or writes. A privileged path instead applies explicit backend authorization and owner filtering, because it may bypass RLS.
 5. The API returns only data authorized for that principal.
 
-Exact token-verification configuration and how FastAPI accesses Supabase are proposed decisions, not implemented facts.
+Neon Auth JWT verification is defined by ADR-013. How FastAPI accesses Neon PostgreSQL beyond the authentication probe remains unimplemented.
 
 ## AI, memory, and autonomy
 
@@ -55,4 +55,4 @@ Persistent AI memory changes follow a proposal → user review/approval → appl
 
 ## Deployment and integrations
 
-Online deployment is required from the beginning. The MVP needs a minimal online deployment baseline: separated configuration, secret handling, an accessible frontend/backend path, and a documented migration/deployment procedure. Supabase is the confirmed authentication/database service. Provider choices for frontend/backend hosting, AI, observability, secrets, scheduler/background execution, environments, and cost limits remain unresolved. Production hardening and release operations—monitoring, incident handling, rollback rehearsal, cost controls, and operational validation—are later release-readiness work. Do not assume free tiers meet requirements.
+Online deployment is required from the beginning. The MVP needs a minimal online deployment baseline: separated configuration, secret handling, an accessible frontend/backend path, and a documented migration/deployment procedure. Neon PostgreSQL and Neon Auth are the confirmed database/authentication service. Provider choices for frontend/backend hosting, AI, observability, secrets, scheduler/background execution, environments, and cost limits remain unresolved. Production hardening and release operations—monitoring, incident handling, rollback rehearsal, cost controls, and operational validation—are later release-readiness work. Do not assume free tiers meet requirements.
