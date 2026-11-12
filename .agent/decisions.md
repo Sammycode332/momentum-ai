@@ -16,7 +16,7 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Date:** 2026-11-12
 - **Status:** proposed
 - **Context:** React + TypeScript is confirmed, but no frontend framework is selected.
-- **Decision:** Select a React framework only after evaluating deployment needs, authentication integration, routing/rendering needs, team familiarity, and 10-hour MVP impact.
+- **Decision:** Select a React framework only after evaluating deployment needs, authentication integration, routing/rendering needs, team familiarity, and broader MVP scope impact.
 - **Alternatives considered:** Next.js; a client-rendered React setup; other React-compatible approaches.
 - **Reasoning and trade-offs:** Next.js is possible, not agreed. Premature selection risks unnecessary architecture and dependency commitment.
 
@@ -52,6 +52,15 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Date:** 2026-11-12
 - **Status:** proposed
 - **Context:** Online deployment is required, but hosting, environments, migrations, monitoring, cost limits, and scheduling are unselected.
-- **Decision:** Decide these before production deployment; do not represent any provider or free-tier assumption as agreed.
+- **Decision:** Establish a provider-agnostic minimal online MVP deployment baseline before MVP delivery, then decide production-hardening and release operations before production release; do not represent any provider or free-tier assumption as agreed.
 - **Alternatives considered:** Choosing a host/scheduler now.
-- **Reasoning and trade-offs:** Defers infrastructure commitment until MVP needs and costs are clear, while blocking production release planning.
+- **Reasoning and trade-offs:** Preserves the requirement for online MVP deployment without prematurely selecting providers. It defers production-hardening commitments until MVP needs and costs are clear.
+
+## ADR-007 — API versioning and error conventions
+
+- **Date:** 2026-11-12
+- **Status:** proposed
+- **Context:** Agents must not expose REST endpoints until API versioning and error conventions are agreed, but no convention has been selected.
+- **Decision:** Define and record a minimal API versioning and error-response convention before the first private API endpoint is implemented.
+- **Alternatives considered:** Unversioned endpoints; adopting a convention implicitly during implementation.
+- **Reasoning and trade-offs:** This preserves client compatibility and predictable failures without choosing an API design prematurely.

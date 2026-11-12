@@ -24,12 +24,14 @@ Supabase PostgreSQL is the system of record. Expected user-owned domains include
 
 Every private record must be scoped to an authenticated owner and protected by RLS plus server-side authorization. Ownership is derived from verified identity; never accepted from the client as authority. Cross-user access is denied by default.
 
+Supabase `service_role` credentials bypass RLS and are therefore not evidence of authorization. They may exist only in trusted backend runtime and never in browser code. Before a privileged query or mutation, the backend must verify the caller’s identity, authorize the requested action, and apply explicit ownership filtering. Prefer user-scoped database access subject to RLS where practical. Views, RPCs, privileged functions, and administrative access paths require security review because they can alter or bypass the intended policy boundary.
+
 ## Authentication and authorization flow
 
 1. The frontend authenticates a user with Supabase Auth.
 2. For private API requests, it submits the authenticated credential using the agreed transport.
 3. FastAPI verifies it with the selected supported mechanism, derives the principal, validates input, and authorizes the requested resource/action.
-4. Database access runs with policies that prevent cross-user reads or writes.
+4. User-scoped database access runs with policies that prevent cross-user reads or writes. A service-role path instead applies explicit backend authorization and owner filtering, because it bypasses RLS.
 5. The API returns only data authorized for that principal.
 
 Exact token-verification configuration and how FastAPI accesses Supabase are proposed decisions, not implemented facts.
@@ -42,4 +44,4 @@ Persistent AI memory changes follow a proposal → user review/approval → appl
 
 ## Deployment and integrations
 
-Online deployment is required from the beginning. Supabase is the confirmed authentication/database service. AI hosting, frontend/backend hosting, migration workflow, observability, secrets platform, scheduler/background execution, environments, cost limits, and external integrations are unresolved. Do not assume free tiers meet requirements.
+Online deployment is required from the beginning. The MVP needs a minimal online deployment baseline: separated configuration, secret handling, an accessible frontend/backend path, and a documented migration/deployment procedure. Supabase is the confirmed authentication/database service. Provider choices for frontend/backend hosting, AI, observability, secrets, scheduler/background execution, environments, and cost limits remain unresolved. Production hardening and release operations—monitoring, incident handling, rollback rehearsal, cost controls, and operational validation—are later release-readiness work. Do not assume free tiers meet requirements.

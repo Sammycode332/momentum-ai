@@ -24,7 +24,7 @@ Primary users: students, developers, and professionals with overlapping project,
 
 ## MVP boundaries
 
-The initial build target is about 10 hours. MVP means a thin, validated vertical slice of the journeys above, not exhaustive workflow coverage or autonomous background operation. Scope changes require an explicit trade-off recorded in the roadmap and tasks.
+The MVP deliberately retains all five core record domains and the full set of confirmed journeys above. It is broader than the original approximate 10-hour estimate; no completion-time promise is currently made. It remains a validated first release rather than exhaustive workflow coverage, unsupervised background operation, or broad automation. Scope changes require an explicit trade-off recorded in the roadmap and tasks.
 
 ## Explicitly excluded from MVP
 

@@ -46,20 +46,21 @@ Inspect the repository before assuming a structure or changing code. Treat docs 
 ### Backend and API
 
 - Use Python + FastAPI. Keep route handling thin; place domain logic, validation, authorization, and provider adapters in appropriate layers.
-- Expose versioned REST endpoints only after API versioning and error conventions are agreed.
+- Expose REST endpoints only after API versioning and error conventions are agreed and recorded in an ADR/task.
 - Validate input and authenticate every private request. Resolve identity server-side and authorize the requested resource before reading or mutating it.
 - Keep AI providers behind an interface; application domain code must not depend directly on one vendor SDK.
 
 ### Database
 
 - Use Supabase PostgreSQL. Every user-owned row must carry an owner identity and be protected with PostgreSQL Row Level Security (RLS).
+- Supabase `service_role` credentials bypass RLS. Keep them backend-only; any privileged operation must first verify identity and perform explicit server-side authorization and ownership filtering. Prefer user-scoped access that is subject to RLS where applicable.
 - Use reviewed, reversible migration practices after the migration tool is selected. Never modify production data manually without an approved operational procedure.
 - Design indexes and constraints from actual access patterns; preserve auditability for memory approvals and autonomous changes.
 
 ## Authentication, authorization, and security
 
 - Supabase Auth authenticates users; backend services must verify tokens and enforce authorization for every private resource.
-- Enforce tenant boundaries both in backend logic and database RLS. Never trust client-supplied user IDs or frontend filtering.
+- Enforce tenant boundaries both in backend logic and database RLS. Never trust client-supplied user IDs or frontend filtering. RLS is not a safeguard for service-role queries.
 - Keep secrets in environment-managed configuration, never source control, UI bundles, logs, prompts, or error messages.
 - Treat AI memory, prompts, recommendation inputs, and AI-provider outputs as sensitive user data. Follow `.agent/security.md`.
 

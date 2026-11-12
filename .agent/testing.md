@@ -8,7 +8,8 @@ Testing must demonstrate behavior and safety, with controlled fixtures or test c
 - **Integration:** FastAPI routes/services with authenticated identities; database constraints/RLS; Supabase integration; approved AI-provider mock/contract behavior.
 - **API:** authentication failures, malformed input, resource ownership, error behavior, and only authorized response fields.
 - **Frontend:** onboarding, private-route handling, core record workflows, dashboard states, accessibility-relevant interactions, and safe rendering of AI output.
-- **Authorization/isolation:** two or more fixture users must prove cross-user list/read/create/update/delete attempts are denied at API and database-policy boundaries.
+- **Authorization/isolation:** two or more fixture users must prove cross-user list/read/create/update/delete attempts are denied at API and database-policy boundaries. Tests must separately cover user-scoped/RLS paths and service-role paths; service-role tests must prove verified identity, explicit authorization, and ownership filters prevent cross-user access despite RLS bypass.
+- **Database escape hatches:** test views, RPCs, privileged functions, and administrative access paths before use. Security review must confirm that each preserves the intended authorization boundary and does not silently bypass tenant isolation.
 - **Regression:** add a test when fixing a relevant defect; run the affected suite before completion.
 
 ## AI behavior evaluations
@@ -21,6 +22,6 @@ Initial scenarios:
 2. **Memory and project continuity:** use approved prior context appropriately, preserve project continuity, and never treat unapproved proposals as memory.
 3. **Learning support:** propose a learning action matched to recorded skill goals and available constraints without inventing progress.
 4. **Career opportunity matching:** relate a saved opportunity to the user’s authenticated profile/goals while keeping data private and explaining the match basis.
-5. **Safe autonomy and task recovery:** allow only consented routine reprioritization/rescheduling, log it, and preserve a clear recovery/reversal path; reject out-of-scope changes.
+5. **Safe autonomy and task recovery:** allow only consented routine reprioritization and rescheduling, require approval for consequential changes, log every action, and preserve a clear recovery/reversal path; reject out-of-scope changes.
 
 Record scenario fixtures, expected critical outcomes, test commands, and pass/fail evidence once tooling is chosen.
