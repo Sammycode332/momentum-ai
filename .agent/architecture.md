@@ -13,7 +13,7 @@ Use the existing GitHub repository `Sammycode332/momentum-ai` as a monorepo with
 - `.agent/` contains engineering documentation.
 - Root `AGENTS.md` coordinates agent work across the repository.
 
-The application directories are planned. Their internal structure and bootstrap details remain open.
+The minimum bootstrap is defined by ADR-010. `frontend/` will use the standard React + TypeScript + Vite scaffold, Tailwind CSS v4 through its Vite integration, npm, and a frontend-local `package-lock.json`. `backend/` will use a standard `pyproject.toml`, a virtual environment with pip, Uvicorn for local development, and a minimal `app/main.py` FastAPI application. Dependencies and configuration remain local to their respective applications; no root task runner or monorepo tooling is selected.
 
 ## Responsibilities and communication
 
@@ -23,11 +23,11 @@ The backend owns business rules, authorization, AI orchestration, memory proposa
 
 ## Frontend
 
-Use React + TypeScript + Vite in `frontend/`, with Tailwind CSS for styling. Routing, state management, data fetching, component conventions, Tailwind version, and any UI component library remain unchosen. Organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
+Use React + TypeScript + Vite in `frontend/`, with Tailwind CSS v4 through its Vite integration for styling. npm and a frontend-local `package-lock.json` manage frontend dependencies. The minimum scaffold includes no UI component library. Routing, state management, data fetching, and component conventions remain unchosen. Organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
 
 ## Backend
 
-Use FastAPI in `backend/`. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Supabase and hosted-AI SDK details. The internal backend layout, validation library choices beyond FastAPI’s normal facilities, background-job strategy, and deployment topology are unresolved.
+Use FastAPI in `backend/`. The minimum bootstrap uses a standard `backend/pyproject.toml`, a Python virtual environment with pip, Uvicorn for local development, and `backend/app/main.py` as the minimal application module. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Supabase and hosted-AI SDK details. No custom application HTTP endpoint, including `/health`, is part of the bootstrap; FastAPI's framework-generated documentation and OpenAPI routes may remain enabled. The internal backend layout beyond the minimal module, validation library choices beyond FastAPI’s normal facilities, test framework, background-job strategy, and deployment topology are unresolved.
 
 ## Data and isolation
 

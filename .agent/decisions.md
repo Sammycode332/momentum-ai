@@ -82,3 +82,12 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Decision:** Use the existing GitHub repository `Sammycode332/momentum-ai` as a monorepo. Place React + TypeScript + Vite + Tailwind CSS in `frontend/`, Python + FastAPI in `backend/`, engineering documentation in `.agent/`, and agent coordination in root `AGENTS.md`.
 - **Alternatives:** Separate repositories for the frontend and backend, or a single repository with application files at the root.
 - **Reasoning and trade-offs:** One repository lets related UI, API, and documentation changes be reviewed together. Top-level application directories keep the two stacks distinct. A shared repository requires care to scope tooling and checks to the relevant application. Bootstrap details and deployment topology remain open.
+
+## ADR-010 — Minimum local application bootstrap
+
+- **Date:** 2026-11-12
+- **Status:** accepted
+- **Context:** FND-01 requires a reproducible minimum bootstrap for both applications in the accepted monorepo. The project needs local development and verification commands without prematurely selecting API conventions, test tooling, deployment tooling, or application architecture.
+- **Decision:** FND-01 includes both application roots. `frontend/` will use the standard React + TypeScript + Vite scaffold, Tailwind CSS v4 through its Vite integration, npm, and a frontend-local `package-lock.json`; it will not add a UI component library. `backend/` will use FastAPI with a standard `pyproject.toml`, Python virtual environment and pip, Uvicorn for local development, and a minimal `app/main.py` application. Dependencies and configuration remain scoped to each application. No pnpm workspaces, Turborepo, Nx, Docker, Poetry, uv, or root task runner are selected at this checkpoint. The bootstrap introduces no custom HTTP endpoints, including `/health`; FastAPI-generated documentation and OpenAPI routes may remain enabled.
+- **Alternatives considered:** A frontend-only bootstrap; root-level monorepo tooling; Docker; Poetry or uv; a backend test framework; a custom health endpoint.
+- **Reasoning and trade-offs:** Per-application native tooling keeps the first increment small, inspectable, and consistent with the accepted monorepo boundary. It gives both stacks a local run path while avoiding new orchestration, deployment, API-contract, or testing commitments. This intentionally defers a backend test framework to FND-03 and custom endpoints until FND-05 records API versioning and error conventions.

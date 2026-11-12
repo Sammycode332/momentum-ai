@@ -1,10 +1,10 @@
 # Blockers and Open Questions
 
-Resolved entries remain in this file with their history; none have been resolved yet.
+Resolved entries remain in this file with their history.
 
 | ID | Type | Blocker / question | Impact | Possible resolution | Status |
 | --- | --- | --- | --- | --- | --- |
-| BLK-01 | Decision | Frontend bootstrap details remain open under the monorepo layout accepted in ADR-009 | Blocks FND-01 scaffold and local development setup | Agree on the minimal initial scaffold inside `frontend/` and the local run and verification workflow | open |
+| BLK-01 | Decision | Frontend and backend bootstrap details were open under the monorepo layout accepted in ADR-009 | Blocked FND-01 scaffold and local development setup | Resolved by ADR-010: per-application React + TypeScript + Vite + Tailwind CSS v4 and FastAPI bootstraps with documented local verification; no root orchestration tooling, backend test framework, or custom application endpoints | resolved |
 | BLK-02 | Requirement | Onboarding fields and initial dashboard composition are unspecified | Risks building irrelevant context collection or dashboard | Confirm smallest required fields and dashboard priorities | open |
 | BLK-03 | Security/product | Boundaries and defaults for routine reprioritization/rescheduling are undefined | Unsafe or surprising agent actions; blocks AI-03 | Define consent, routine versus consequential changes, limits, approval gates, audit, reversal, and failure handling | open |
 | BLK-04 | Infrastructure | AI provider, hosting, environments, scheduling, monitoring, migrations, and cost limits are undecided | Blocks selecting a minimal online MVP deployment baseline and production operations | Select services deliberately; distinguish MVP deployment from later hardening; update ADR-006 | open |

@@ -4,7 +4,7 @@
 
 Momentum AI is a multi-user personal AI growth and execution assistant. It connects a user’s projects, learning, academics, career opportunities, tasks, and commitments to help them decide and execute what matters next. It is not a generic task list or motivational chatbot.
 
-The agreed technical direction is React + TypeScript + Vite with Tailwind CSS on the frontend, Python + FastAPI on the backend, Supabase PostgreSQL and Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. Hosting, scheduling, AI provider, and Tailwind version remain open.
+The agreed technical direction is React + TypeScript + Vite with Tailwind CSS v4 on the frontend, Python + FastAPI on the backend, Supabase PostgreSQL and Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. Hosting, scheduling, and AI provider remain open.
 
 ## Required reading order
 
