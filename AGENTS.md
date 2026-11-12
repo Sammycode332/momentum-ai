@@ -4,7 +4,7 @@
 
 Momentum AI is a multi-user personal AI growth and execution assistant. It connects a user’s projects, learning, academics, career opportunities, tasks, and commitments to help them decide and execute what matters next. It is not a generic task list or motivational chatbot.
 
-The agreed technical direction is React + TypeScript + Vite with Tailwind CSS on the frontend, Python + FastAPI on the backend, Supabase PostgreSQL and Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. No host, scheduler, AI provider, repository layout, or Tailwind version has been selected.
+The agreed technical direction is React + TypeScript + Vite with Tailwind CSS on the frontend, Python + FastAPI on the backend, Supabase PostgreSQL and Auth, REST between frontend and backend, and a hosted AI provider behind a replaceable interface. Hosting, scheduling, AI provider, and Tailwind version remain open.
 
 ## Required reading order
 
@@ -36,9 +36,11 @@ Inspect the repository before assuming a structure or changing code. Treat docs 
 
 ## Conventions
 
+Respect the monorepo layout in ADR-009. Put frontend code in `frontend/`, backend code in `backend/`, and engineering documentation in `.agent/`. Keep `AGENTS.md` at the root.
+
 ### Frontend
 
-- Use React + TypeScript + Vite and Tailwind CSS. Do not replace these choices or select a Tailwind version, UI component library, or repository layout without an approved decision.
+- Use React + TypeScript + Vite and Tailwind CSS. Follow the ADR process for changes to this stack or choices about Tailwind version and UI component libraries.
 - Keep presentation, client state, API access, and domain behavior separated as the selected framework permits.
 - Treat backend authorization as authoritative; frontend visibility is never access control.
 - Avoid storing secrets or privileged credentials in browser code.

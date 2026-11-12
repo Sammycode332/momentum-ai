@@ -4,19 +4,30 @@
 
 The intended system comprises a React + TypeScript + Vite frontend styled with Tailwind CSS, a Python + FastAPI backend, Supabase PostgreSQL with Supabase Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start. No source implementation exists yet.
 
+## Repository layout (ADR-009)
+
+Use the existing GitHub repository `Sammycode332/momentum-ai` as a monorepo with this intended layout.
+
+- `frontend/` contains the React + TypeScript + Vite application styled with Tailwind CSS.
+- `backend/` contains the Python + FastAPI application.
+- `.agent/` contains engineering documentation.
+- Root `AGENTS.md` coordinates agent work across the repository.
+
+The application directories are planned. Their internal structure and bootstrap details remain open.
+
 ## Responsibilities and communication
 
 `React client → authenticated REST API → FastAPI domain services → Supabase PostgreSQL` is the intended primary path. The client obtains user authentication through Supabase Auth and sends the resulting credential to the API. The API verifies the credential, derives identity server-side, validates input, authorizes the operation, and invokes domain services. User-owned database rows are also protected by RLS.
 
 The backend owns business rules, authorization, AI orchestration, memory proposal lifecycle, and permission enforcement. The frontend owns interaction and presentation only; it may not make trust decisions about user ownership.
 
-## Frontend (confirmed direction; structure proposed)
+## Frontend
 
-Use React + TypeScript + Vite, with Tailwind CSS for styling. The repository layout, routing, state-management, data-fetching, component conventions, Tailwind version, and any UI component library remain unchosen. Do not infer a monorepo or separate repositories. Organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
+Use React + TypeScript + Vite in `frontend/`, with Tailwind CSS for styling. Routing, state management, data fetching, component conventions, Tailwind version, and any UI component library remain unchosen. Organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
 
-## Backend (confirmed direction; structure proposed)
+## Backend
 
-Use FastAPI. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Supabase and hosted-AI SDK details. The exact project layout, validation library choices beyond FastAPI’s normal facilities, background-job strategy, and deployment topology are unresolved.
+Use FastAPI in `backend/`. Route handlers should authenticate and validate requests, then delegate domain actions to focused services. Provider adapters should isolate Supabase and hosted-AI SDK details. The internal backend layout, validation library choices beyond FastAPI’s normal facilities, background-job strategy, and deployment topology are unresolved.
 
 ## Data and isolation
 

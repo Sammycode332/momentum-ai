@@ -73,3 +73,12 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Decision:** Use Tailwind CSS for frontend styling.
 - **Alternatives considered:** CSS modules, styled components, another utility-first CSS system, and a preselected UI component library.
 - **Reasoning and trade-offs:** Tailwind CSS provides a shared utility-based styling convention while keeping the UI component-library choice open. This decision does not select a Tailwind version, design system, component library, or repository structure.
+
+## ADR-009 — Monorepo layout
+
+- **Date:** 2026-11-12
+- **Status:** accepted
+- **Context:** Momentum AI has distinct frontend and backend stacks with shared engineering documentation. The project owner approved a single repository for both applications and their documentation.
+- **Decision:** Use the existing GitHub repository `Sammycode332/momentum-ai` as a monorepo. Place React + TypeScript + Vite + Tailwind CSS in `frontend/`, Python + FastAPI in `backend/`, engineering documentation in `.agent/`, and agent coordination in root `AGENTS.md`.
+- **Alternatives:** Separate repositories for the frontend and backend, or a single repository with application files at the root.
+- **Reasoning and trade-offs:** One repository lets related UI, API, and documentation changes be reviewed together. Top-level application directories keep the two stacks distinct. A shared repository requires care to scope tooling and checks to the relevant application. Bootstrap details and deployment topology remain open.
