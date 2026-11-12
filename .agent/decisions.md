@@ -59,11 +59,11 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 ## ADR-007 — API versioning and error conventions
 
 - **Date:** 2026-11-12
-- **Status:** proposed
-- **Context:** Agents must not expose REST endpoints until API versioning and error conventions are agreed, but no convention has been selected.
-- **Decision:** Define and record a minimal API versioning and error-response convention before the first private API endpoint is implemented.
-- **Alternatives considered:** Unversioned endpoints; adopting a convention implicitly during implementation.
-- **Reasoning and trade-offs:** This preserves client compatibility and predictable failures without choosing an API design prematurely.
+- **Status:** accepted
+- **Context:** Private API endpoints need a stable path and safe, predictable failure responses before implementation. The bootstrap intentionally introduced no custom endpoints, middleware, or exception handlers.
+- **Decision:** Private application API endpoints use the `/api/v1/...` path prefix. HTTP status codes retain their standard meanings. Application-generated error responses use `{"error":{"code":"MACHINE_READABLE_CODE","message":"Safe human-readable message"}}`; an optional `details` member may include only safe validation information. Authentication failures use `401 Unauthorized`; authenticated callers without permission use `403 Forbidden`. Error responses must not expose stack traces, credentials, internal database details, or sensitive user information. FastAPI's framework-generated `/docs` and `/openapi.json` routes remain unchanged.
+- **Alternatives considered:** Unversioned private endpoints; framework-default or endpoint-specific error shapes; changing the framework-generated documentation/OpenAPI routes; adopting middleware or exception handlers before private endpoints exist.
+- **Reasoning and trade-offs:** A versioned prefix and uniform application error envelope give clients a stable, safe contract while retaining normal HTTP semantics. Deferring runtime enforcement avoids adding unused code or dependencies; each future endpoint and handler must implement and test this contract without leaking sensitive information.
 
 ## ADR-008 — Frontend styling
 
