@@ -6,13 +6,13 @@ Status values: proposed, ready, in progress, blocked, complete. Use `proposed` f
 
 | ID | Description | Dependencies | Acceptance criteria | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| FND-01 | Bootstrap the minimum React + TypeScript + Vite + Tailwind CSS v4 frontend in `frontend/` and Python + FastAPI backend in `backend/` | ADR-002; ADR-008; ADR-009; ADR-010 | Both minimal scaffolds follow ADR-009 and ADR-010; frontend install, development, build, and lint commands plus backend installation, startup, and import/startup verification commands are documented | P0 | in progress |
-| FND-02 | Establish environment, configuration, and secrets conventions | FND-01 | No secrets committed; local/staging configuration approach documented | P0 | proposed |
+| FND-01 | Bootstrap the minimum React + TypeScript + Vite + Tailwind CSS v4 frontend in `frontend/` and Python + FastAPI backend in `backend/` | ADR-002; ADR-008; ADR-009; ADR-010 | Both minimal scaffolds follow ADR-009 and ADR-010; frontend install, development, build, and lint commands plus backend installation, startup, and import/startup verification commands are documented | P0 | complete |
+| FND-02 | Establish environment, configuration, and secrets conventions | FND-01 | No secrets committed; local/staging configuration approach documented | P0 | complete |
 | FND-03 | Establish test tooling and controlled fixtures | FND-01 | Unit/integration test commands run; fixture policy supports isolated user and privileged-access tests | P0 | proposed |
 | FND-04 | Define minimal online MVP deployment baseline | FND-02; ADR-006; BLK-04 | Provider-agnostic deployment, migration, configuration, and rollback procedure documented; no provider is selected implicitly | P0 | blocked |
 | FND-05 | Define API versioning and error conventions | FND-01; ADR-007 | Versioning and error convention recorded before private API endpoints are exposed | P0 | proposed |
 
-FND-01 is ready for final review. Both scaffolds and their documented checks have been verified. See [progress](progress.md) for the results.
+FND-01 completed at `dcfd151` after the documented frontend and backend checks. FND-02 completed after verification of its ignore rules, trackable templates, and configuration convention. See [progress](progress.md) for the results.
 
 ## Phase 1 — Identity and data isolation
 

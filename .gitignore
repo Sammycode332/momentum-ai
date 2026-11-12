@@ -1,0 +1,6 @@
+# Environment files may contain local configuration or secrets. Commit only
+# placeholder templates that contain no environment-specific values.
+.env
+.env.*
+!.env.example
+!.env.*.example
