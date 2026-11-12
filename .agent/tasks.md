@@ -1,6 +1,6 @@
 # Implementation Backlog
 
-Status values: proposed, ready, in progress, blocked, complete. Use `proposed` for unstarted work. Use `blocked` only when a specific open `BLK-` entry prevents work. No implementation task has started.
+Status values: proposed, ready, in progress, blocked, complete. Use `proposed` for unstarted work. Use `blocked` only when a specific open `BLK-` entry prevents work.
 
 ## Phase 0 — Foundation
 
@@ -11,6 +11,8 @@ Status values: proposed, ready, in progress, blocked, complete. Use `proposed` f
 | FND-03 | Establish test tooling and controlled fixtures | FND-01 | Unit/integration test commands run; fixture policy supports isolated user and privileged-access tests | P0 | proposed |
 | FND-04 | Define minimal online MVP deployment baseline | FND-02; ADR-006; BLK-04 | Provider-agnostic deployment, migration, configuration, and rollback procedure documented; no provider is selected implicitly | P0 | blocked |
 | FND-05 | Define API versioning and error conventions | FND-01; ADR-007 | Versioning and error convention recorded before private API endpoints are exposed | P0 | proposed |
+
+FND-01 is ready for final review. Both scaffolds and their documented checks have been verified. See [progress](progress.md) for the results.
 
 ## Phase 1 — Identity and data isolation
 
