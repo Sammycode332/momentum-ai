@@ -2,7 +2,7 @@
 
 ## Confirmed system direction
 
-The intended system comprises a React + TypeScript frontend, a Python + FastAPI backend, Supabase PostgreSQL with Supabase Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start. No source implementation exists yet.
+The intended system comprises a React + TypeScript + Vite frontend styled with Tailwind CSS, a Python + FastAPI backend, Supabase PostgreSQL with Supabase Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start. No source implementation exists yet.
 
 ## Responsibilities and communication
 
@@ -12,7 +12,7 @@ The backend owns business rules, authorization, AI orchestration, memory proposa
 
 ## Frontend (confirmed direction; structure proposed)
 
-Use React + TypeScript. The exact React framework, routing, rendering, state-management, data-fetching, and component conventions are unchosen. When selected, organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
+Use React + TypeScript + Vite, with Tailwind CSS for styling. The repository layout, routing, state-management, data-fetching, component conventions, Tailwind version, and any UI component library remain unchosen. Do not infer a monorepo or separate repositories. Organize UI, API client code, and domain-specific views so presentation does not become the authorization or business-rule layer.
 
 ## Backend (confirmed direction; structure proposed)
 

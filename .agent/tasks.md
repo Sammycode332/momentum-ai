@@ -6,7 +6,7 @@ Status values: proposed, ready, in progress, blocked, complete. Use `proposed` f
 
 | ID | Description | Dependencies | Acceptance criteria | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| FND-01 | Select frontend framework and repository layout | ADR-002; BLK-01 | Decision recorded; minimal project structure and local run/test commands documented | P0 | blocked |
+| FND-01 | Define repository layout and bootstrap the selected React + TypeScript + Vite frontend | ADR-002; ADR-008; BLK-01 | Repository layout decision recorded; minimal frontend project structure and local run/test commands documented without selecting additional UI libraries | P0 | blocked |
 | FND-02 | Establish environment, configuration, and secrets conventions | FND-01 | No secrets committed; local/staging configuration approach documented | P0 | proposed |
 | FND-03 | Establish test tooling and controlled fixtures | FND-01 | Unit/integration test commands run; fixture policy supports isolated user and privileged-access tests | P0 | proposed |
 | FND-04 | Define minimal online MVP deployment baseline | FND-02; ADR-006; BLK-04 | Provider-agnostic deployment, migration, configuration, and rollback procedure documented; no provider is selected implicitly | P0 | blocked |

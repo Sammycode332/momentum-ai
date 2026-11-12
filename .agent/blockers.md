@@ -4,7 +4,7 @@ Resolved entries remain in this file with their history; none have been resolved
 
 | ID | Type | Blocker / question | Impact | Possible resolution | Status |
 | --- | --- | --- | --- | --- | --- |
-| BLK-01 | Decision | React framework and repository bootstrap are unselected | Blocks implementation layout, scripts, test tooling, and UI work | Choose between Next.js and an alternative React setup; accept ADR-002 | open |
+| BLK-01 | Decision | Repository layout and bootstrap approach for the selected React + TypeScript + Vite frontend are unselected | Blocks initial project structure, scripts, test tooling, and UI work | Decide repository layout and bootstrap approach without assuming a monorepo or separate repositories | open |
 | BLK-02 | Requirement | Onboarding fields and initial dashboard composition are unspecified | Risks building irrelevant context collection or dashboard | Confirm smallest required fields and dashboard priorities | open |
 | BLK-03 | Security/product | Boundaries and defaults for routine reprioritization/rescheduling are undefined | Unsafe or surprising agent actions; blocks AI-03 | Define consent, routine versus consequential changes, limits, approval gates, audit, reversal, and failure handling | open |
 | BLK-04 | Infrastructure | AI provider, hosting, environments, scheduling, monitoring, migrations, and cost limits are undecided | Blocks selecting a minimal online MVP deployment baseline and production operations | Select services deliberately; distinguish MVP deployment from later hardening; update ADR-006 | open |
