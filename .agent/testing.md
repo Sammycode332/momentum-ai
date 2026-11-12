@@ -1,0 +1,26 @@
+# Testing Strategy
+
+Testing must demonstrate behavior and safety, with controlled fixtures or test copies for any test that modifies user records. Never target uncontrolled user data.
+
+## Test layers
+
+- **Unit:** validation, prioritization logic, permission checks, memory state transitions, provider adapters, and output parsing.
+- **Integration:** FastAPI routes/services with authenticated identities; database constraints/RLS; Supabase integration; approved AI-provider mock/contract behavior.
+- **API:** authentication failures, malformed input, resource ownership, error behavior, and only authorized response fields.
+- **Frontend:** onboarding, private-route handling, core record workflows, dashboard states, accessibility-relevant interactions, and safe rendering of AI output.
+- **Authorization/isolation:** two or more fixture users must prove cross-user list/read/create/update/delete attempts are denied at API and database-policy boundaries.
+- **Regression:** add a test when fixing a relevant defect; run the affected suite before completion.
+
+## AI behavior evaluations
+
+Use deterministic fixtures/stubs where feasible and separate critical safety/correctness gates from presentation or convenience scoring. Critical requirements must pass; good wording cannot compensate for unsafe access, unauthorized writes, fabricated context, or bypassed approval.
+
+Initial scenarios:
+
+1. **Cross-domain prioritization:** given conflicting project, learning, academic, and commitment data, recommend a realistic, evidenced next action and avoid unjustified certainty.
+2. **Memory and project continuity:** use approved prior context appropriately, preserve project continuity, and never treat unapproved proposals as memory.
+3. **Learning support:** propose a learning action matched to recorded skill goals and available constraints without inventing progress.
+4. **Career opportunity matching:** relate a saved opportunity to the user’s authenticated profile/goals while keeping data private and explaining the match basis.
+5. **Safe autonomy and task recovery:** allow only consented routine reprioritization/rescheduling, log it, and preserve a clear recovery/reversal path; reject out-of-scope changes.
+
+Record scenario fixtures, expected critical outcomes, test commands, and pass/fail evidence once tooling is chosen.

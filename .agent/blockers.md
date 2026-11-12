@@ -1,0 +1,12 @@
+# Blockers and Open Questions
+
+Resolved entries remain in this file with their history; none have been resolved yet.
+
+| ID | Type | Blocker / question | Impact | Possible resolution | Status |
+| --- | --- | --- | --- | --- | --- |
+| BLK-01 | Decision | React framework and repository bootstrap are unselected | Blocks implementation layout, scripts, test tooling, and UI work | Choose between Next.js and an alternative React setup; accept ADR-002 | open |
+| BLK-02 | Requirement | Onboarding fields and initial dashboard composition are unspecified | Risks building irrelevant context collection or dashboard | Confirm smallest required fields and dashboard priorities | open |
+| BLK-03 | Security/product | Scope and defaults for autonomous reprioritization/rescheduling are undefined | Unsafe or surprising agent actions; blocks AI-03 | Define consent, allowed changes, limits, audit, reversal, and failure handling | open |
+| BLK-04 | Infrastructure | AI provider, hosting, environments, scheduling, monitoring, migrations, and cost limits are undecided | Blocks deployable online production plan and cost/risk assessment | Select services and operational baseline before release; accept ADR-006 | open |
+| BLK-05 | Data/security | Data retention/deletion expectations and AI-provider data handling terms are unknown | Cannot finalize privacy controls or logging policy | Confirm policy and provider agreement before handling production data | open |
+| BLK-06 | Quality | Success metrics and test data for AI recommendations are unselected | Evaluation pass/fail thresholds cannot be finalized | Define scenario fixtures, expected outcomes, and critical safety criteria | open |
