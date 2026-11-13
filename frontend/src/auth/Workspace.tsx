@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Goals } from '../goals/Goals'
+import { OnboardingPreferences } from '../onboarding/OnboardingPreferences'
 import { authClient } from './auth-client'
 
 type WorkspaceProps = {
@@ -82,7 +83,9 @@ export function Workspace({ email, onSignedOut }: WorkspaceProps) {
       </div>
       {signOutError ? <p role="alert" className="mt-4 text-sm text-rose-300">{signOutError}</p> : null}
       {apiStatus ? <p role="status" className="mt-4 text-sm text-slate-300">{apiStatus}</p> : null}
-      <Goals />
+      <OnboardingPreferences>
+        <Goals />
+      </OnboardingPreferences>
     </section>
   )
 }

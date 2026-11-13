@@ -10,6 +10,15 @@ const authMocks = vi.hoisted(() => ({
   verifyEmail: vi.fn(),
   useSession: vi.fn(),
   refetch: vi.fn(),
+  loadOnboarding: vi.fn(),
+  saveOnboarding: vi.fn(),
+  skipOnboarding: vi.fn(),
+}))
+
+vi.mock('./onboarding/onboarding-api', () => ({
+  loadOnboarding: authMocks.loadOnboarding,
+  saveOnboarding: authMocks.saveOnboarding,
+  skipOnboarding: authMocks.skipOnboarding,
 }))
 
 vi.mock('./auth/auth-client', () => ({
@@ -28,8 +37,16 @@ vi.mock('./auth/auth-client', () => ({
 
 import App from './App'
 
+const skipped = {
+  status: 'skipped', primary_focus: null, current_goals: null, planning_time: null,
+}
+
 describe('App', () => {
   beforeEach(() => {
+    authMocks.loadOnboarding.mockReset()
+    authMocks.loadOnboarding.mockResolvedValue(skipped)
+    authMocks.saveOnboarding.mockReset()
+    authMocks.skipOnboarding.mockReset()
     authMocks.getSession.mockReset()
     authMocks.signIn.mockReset()
     authMocks.signOut.mockReset()
@@ -84,6 +101,71 @@ describe('App', () => {
       screen.getByRole('heading', { name: 'You’re signed in' }),
     ).toBeInTheDocument()
     expect(screen.getByText('person@example.test')).toBeInTheDocument()
+  })
+
+  it('persists skipping onboarding and shows Goals after returning', async () => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { id: 'test-user', email: 'person@example.test' } },
+      isPending: false,
+      refetch: authMocks.refetch,
+    })
+    authMocks.loadOnboarding.mockResolvedValueOnce(null)
+    authMocks.skipOnboarding.mockResolvedValue(skipped)
+    const first = render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Set up your workspace' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Personal Goals' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
+    expect(await screen.findByRole('heading', { name: 'Personal Goals' })).toBeInTheDocument()
+    expect(authMocks.skipOnboarding).toHaveBeenCalledOnce()
+
+    first.unmount()
+    render(<App />)
+    expect(await screen.findByRole('button', { name: 'Set planning preferences' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Skip for now' })).not.toBeInTheDocument()
+  })
+
+  it('saves onboarding and lets users view and edit the saved fields', async () => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { id: 'test-user', email: 'person@example.test' } },
+      isPending: false,
+      refetch: authMocks.refetch,
+    })
+    authMocks.loadOnboarding.mockResolvedValue(null)
+    const fields = { primary_focus: 'Study', current_goals: 'Finish chapter one', planning_time: '08:30' }
+    authMocks.saveOnboarding
+      .mockResolvedValueOnce({ status: 'completed', ...fields })
+      .mockResolvedValueOnce({ status: 'completed', ...fields, planning_time: '09:00' })
+    render(<App />)
+
+    fireEvent.change(await screen.findByLabelText('Primary focus'), { target: { value: fields.primary_focus } })
+    fireEvent.change(screen.getByLabelText('Current goals'), { target: { value: fields.current_goals } })
+    fireEvent.change(screen.getByLabelText('Preferred daily planning time'), { target: { value: fields.planning_time } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save preferences' }))
+    expect(await screen.findByText('Preferences saved.')).toBeInTheDocument()
+    expect(screen.getByText(fields.current_goals)).toBeInTheDocument()
+    expect(authMocks.saveOnboarding).toHaveBeenCalledWith(fields)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit preferences' }))
+    expect(screen.getByLabelText('Primary focus')).toHaveValue(fields.primary_focus)
+    fireEvent.change(screen.getByLabelText('Preferred daily planning time'), { target: { value: '09:00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save preferences' }))
+    expect(await screen.findByText('09:00')).toBeInTheDocument()
+    expect(authMocks.saveOnboarding).toHaveBeenLastCalledWith({ ...fields, planning_time: '09:00' })
+  })
+
+  it('keeps Goals accessible when onboarding preferences cannot load', async () => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { id: 'test-user', email: 'person@example.test' } },
+      isPending: false,
+      refetch: authMocks.refetch,
+    })
+    authMocks.loadOnboarding.mockRejectedValueOnce(new Error('Offline'))
+    render(<App />)
+    expect(await screen.findByText('Could not load onboarding preferences.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Personal Goals' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry preferences' }))
+    expect(await screen.findByRole('button', { name: 'Set planning preferences' })).toBeInTheDocument()
   })
 
   it('validates a short password before calling Neon Auth', () => {

@@ -133,3 +133,9 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Status:** accepted for the Personal Goals checkpoint
 - **Decision:** Use a numbered, transactional SQL migration applied by an operator. Store the verified Neon Auth subject as the owner. Set that subject as transaction-local PostgreSQL context, filter reads and scope writes explicitly in the backend, and require active RLS for the connection's database role. The API accepts only a title when creating a goal.
 - **Trade-offs:** This first migration needs no ORM or migration dependency. The database trusts the backend to set the subject, so database credentials stay backend-only. Use a non-owner runtime role with SELECT and INSERT for deployment, and keep migration credentials separate. Reassess tooling when migrations need automated ordering or deployment tracking.
+
+## ADR-016 — User onboarding preferences
+
+- **Date:** 2026-11-13
+- **Status:** accepted
+- **Decision:** Collect primary focus, current goals as free text, and preferred daily planning time as a local HH:MM preference. Allow a persistent skip and later edits. Store one row per verified Neon Auth subject, with the same transaction-local identity and forced RLS pattern as Goals. The onboarding goals summary is separate from Personal Goals records.
