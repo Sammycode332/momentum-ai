@@ -118,3 +118,18 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Decision:** Use Neon PostgreSQL as the system of record and Neon Auth for managed email/password authentication. The browser uses the official @neondatabase/auth React adapter against a public Neon Auth URL. FastAPI verifies bearer JWTs using NEON_AUTH_JWKS_URL and pins the issuer derived from NEON_AUTH_BASE_URL. The current Neon branch publishes EdDSA signing keys; the backend accepts EdDSA only. No audience is enforced unless Neon’s token contract for a future protected resource requires one. The backend derives the subject only from a verified token and uses the ADR-007 error envelope for auth failures.
 - **Alternatives considered:** Retaining the unimplemented Supabase plan; direct Better Auth client usage; a custom password database or authentication server; accepting unverified browser session data; accepting arbitrary JWT algorithms.
 - **Reasoning and trade-offs:** Neon Auth provides managed Better Auth sessions and branch-scoped JWKS while keeping identity data with Neon PostgreSQL. Pinning issuer, JWKS, required time claims, subject, and the published algorithm gives FastAPI a narrow verification boundary. The change requires provider-specific configuration and later Neon RLS/data-isolation verification; it does not choose an ORM, database migration tool, host, or service credentials.
+
+## ADR-014 — Backend PostgreSQL connection foundation
+
+- **Date:** 2026-11-12
+- **Status:** accepted for the database foundation checkpoint
+- **Context:** ID-02 needs a backend connection to the Neon development database and a read-only connectivity check before implementing schemas and RLS.
+- **Decision:** Use synchronous Psycopg 3 for context-managed connections opened on demand in backend services. Use a backend-only `DATABASE_URL` with a least-privileged development role. Enforce TLS and SCRAM channel binding as documented by [Neon](https://neon.com/blog/postgres-needs-better-connection-security-defaults). Use an operator-run `SELECT 1` smoke check. Future synchronous callers can use Neon's pooled endpoint for application traffic if needed.
+- **Reasoning and trade-offs:** Per-operation connections bound transaction and connection lifetimes and keep database availability out of FastAPI startup. Opening a connection adds latency. Defer an in-process pool, SQLAlchemy, and Alembic until the application has data workloads or migrations to justify them. Database login identifies a database role. Ownership and tenant isolation still require verified Neon Auth identity, explicit authorization, and RLS under ADR-003.
+
+## ADR-015 — Personal Goals schema and ownership
+
+- **Date:** 2026-11-12
+- **Status:** accepted for the Personal Goals checkpoint
+- **Decision:** Use a numbered, transactional SQL migration applied by an operator. Store the verified Neon Auth subject as the owner. Set that subject as transaction-local PostgreSQL context, filter reads and scope writes explicitly in the backend, and require active RLS for the connection's database role. The API accepts only a title when creating a goal.
+- **Trade-offs:** This first migration needs no ORM or migration dependency. The database trusts the backend to set the subject, so database credentials stay backend-only. Use a non-owner runtime role with SELECT and INSERT for deployment, and keep migration credentials separate. Reassess tooling when migrations need automated ordering or deployment tracking.

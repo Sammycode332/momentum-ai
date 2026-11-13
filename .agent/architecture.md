@@ -33,6 +33,8 @@ Use FastAPI in `backend/`. The minimum bootstrap uses a standard `backend/pyproj
 
 Neon PostgreSQL is the system of record. Expected user-owned domains include profile/onboarding context, projects, tasks, learning goals/progress, academic activities, opportunities, AI memory, memory proposals, and agent action/audit records. Specific tables, schemas, and relationships are not yet designed.
 
+Under ADR-014, synchronous backend services can use `app.database.database_connection()` to open a transaction on demand and release the connection when the operation ends. Database access uses a backend-only `DATABASE_URL` with TLS and required SCRAM channel binding. The connection check is a backend command that runs `SELECT 1`. FastAPI startup and the existing authentication probe remain independent of database availability.
+
 Every private record must be scoped to an authenticated owner and protected by RLS plus server-side authorization. Ownership is derived from verified identity; never accepted from the client as authority. Cross-user access is denied by default.
 
 Privileged database credentials are not evidence of authorization. They may exist only in trusted backend runtime and never in browser code. Before a privileged query or mutation, the backend must verify the caller’s identity, authorize the requested action, and apply explicit ownership filtering. Prefer user-scoped database access subject to RLS where practical. Views, RPCs, privileged functions, and administrative access paths require security review because they can alter or bypass the intended policy boundary.
@@ -45,7 +47,7 @@ Privileged database credentials are not evidence of authorization. They may exis
 4. User-scoped database access runs with policies that prevent cross-user reads or writes. A privileged path instead applies explicit backend authorization and owner filtering, because it may bypass RLS.
 5. The API returns only data authorized for that principal.
 
-Neon Auth JWT verification is defined by ADR-013. How FastAPI accesses Neon PostgreSQL beyond the authentication probe remains unimplemented.
+Neon Auth JWT verification is defined by ADR-013. The PostgreSQL connection foundation is available for later services. Applying verified user identity to database operations and testing RLS remain part of ID-02.
 
 ## AI, memory, and autonomy
 

@@ -32,6 +32,10 @@ The Neon Auth URL is public browser configuration. It may be present in a `VITE_
 
 ## Backend-only configuration
 
+For the ID-02 connectivity check, open **Connect** in the Neon console and select the development branch, database, and a least-privileged role that can connect. Copy its PostgreSQL connection URI, including the database name and password, into `DATABASE_URL` in the ignored `backend/.env` or inject it into the backend process environment. The process environment takes precedence. Keep this value out of frontend files, `VITE_*` variables, and source control.
+
+From `backend/` with the virtual environment active, run `python -m pip install -e ".[test]"` and then `python -m app.database`. The check prints a generic result and exits with code 0 for success, 1 for a failed check, or 2 for missing or invalid configuration.
+
 Neon Auth JWKS and Auth base URLs, privileged database credentials, AI-provider API keys, database credentials, signing secrets, and server-only service endpoints are backend runtime configuration. Backend code must read only the configuration it needs, validate required values when that code is implemented, and avoid returning or logging values.
 
 Choosing a backend settings library, dotenv loader, secret manager, provider SDK, exact variable names, or deployment integration is deferred until a feature needs it. Any later choice must preserve this public/private boundary and be recorded through the project decision process.

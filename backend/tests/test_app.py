@@ -7,12 +7,12 @@ from app.auth import InvalidAccessTokenError, get_token_verifier
 from app.main import app
 
 
-def test_openapi_includes_only_the_authentication_probe() -> None:
+def test_openapi_includes_the_authentication_probe_and_goals() -> None:
     with TestClient(app) as client:
         response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {"/api/v1/auth/me"}
+    assert set(response.json()["paths"]) == {"/api/v1/auth/me", "/api/v1/goals"}
 
 
 def test_controlled_principals_are_distinct(

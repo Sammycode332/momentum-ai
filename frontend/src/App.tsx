@@ -11,7 +11,7 @@ function App() {
       {isPending ? (
         <p role="status" className="text-slate-300">Restoring your session…</p>
       ) : email ? (
-        <Workspace email={email} onSignedOut={refetch} />
+        <Workspace key={data?.user?.id ?? email} email={email} onSignedOut={refetch} />
       ) : (
         <AuthForm onAuthenticated={refetch} sessionError={Boolean(error)} />
       )}
