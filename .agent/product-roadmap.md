@@ -1,5 +1,7 @@
 # Product Roadmap
 
+The 2026-11-13 master mission supersedes the original MVP scope below. Follow the ten gated phases in [release-plan.md](release-plan.md); do not report later phases complete while identity/reliability gates remain unverified. GitHub integration and billing remain deferred. External provider choices and costs require review.
+
 ## MVP
 
 The MVP is a secure, broader first release. It deliberately retains the following complete scope and does not promise a completion time:

@@ -1,6 +1,12 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('./goals/goals-api', () => ({ listGoals: vi.fn().mockResolvedValue([]) }))
+vi.mock('./features/api', async importOriginal => ({
+  ...await importOriginal<typeof import('./features/api')>(),
+  api: vi.fn().mockResolvedValue([]),
+}))
+
 const authMocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   signIn: vi.fn(),
@@ -13,6 +19,12 @@ const authMocks = vi.hoisted(() => ({
   loadOnboarding: vi.fn(),
   saveOnboarding: vi.fn(),
   skipOnboarding: vi.fn(),
+  listRecords: vi.fn(),
+}))
+
+vi.mock('./records/records-api', async importOriginal => ({
+  ...await importOriginal<typeof import('./records/records-api')>(),
+  listRecords: authMocks.listRecords,
 }))
 
 vi.mock('./onboarding/onboarding-api', () => ({
@@ -43,6 +55,7 @@ const skipped = {
 
 describe('App', () => {
   beforeEach(() => {
+    authMocks.listRecords.mockReset().mockResolvedValue([])
     authMocks.loadOnboarding.mockReset()
     authMocks.loadOnboarding.mockResolvedValue(skipped)
     authMocks.saveOnboarding.mockReset()
@@ -62,6 +75,23 @@ describe('App', () => {
       isPending: false,
       refetch: authMocks.refetch,
     })
+  })
+
+  it.each(['returned', 'thrown'])('shows a safe recoverable sign-out error when %s', async failure => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { email: 'person@example.test' } },
+      isPending: false, refetch: authMocks.refetch,
+    })
+    if (failure === 'returned') authMocks.signOut.mockResolvedValueOnce({ error: { message: 'private details' } })
+    else authMocks.signOut.mockRejectedValueOnce(new Error('private details'))
+    authMocks.signOut.mockResolvedValueOnce({ error: null })
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not sign out. Please try again.')
+    expect(screen.queryByText('private details')).not.toBeInTheDocument()
+    expect(authMocks.refetch).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    await waitFor(() => expect(authMocks.refetch).toHaveBeenCalledOnce())
   })
 
   it('renders the sign-in experience when there is no session', () => {
@@ -84,6 +114,7 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Restoring your session…')
+    expect(authMocks.listRecords).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument()
   })
 
@@ -98,29 +129,45 @@ describe('App', () => {
     render(<App />)
 
     expect(
-      screen.getByRole('heading', { name: 'You’re signed in' }),
+      screen.getByRole('heading', { name: 'Welcome to Momentum' }),
     ).toBeInTheDocument()
     expect(screen.getByText('person@example.test')).toBeInTheDocument()
   })
 
-  it('persists skipping onboarding and shows Goals after returning', async () => {
+  it.each([
+    ['+ New task', 'Create task'],
+    ['New project', 'Create project'],
+  ])('opens the existing create form from the Overview %s action', async (action, form) => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { email: 'person@example.test', name: 'Maya' } },
+      isPending: false,
+      refetch: authMocks.refetch,
+    })
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Welcome, Maya' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: action }))
+    expect(await screen.findByRole('form', { name: form })).toBeInTheDocument()
+  })
+
+  it('persists skipping onboarding in Settings', async () => {
     authMocks.useSession.mockReturnValue({
       data: { user: { id: 'test-user', email: 'person@example.test' } },
       isPending: false,
       refetch: authMocks.refetch,
     })
-    authMocks.loadOnboarding.mockResolvedValueOnce(null)
+    authMocks.loadOnboarding.mockResolvedValueOnce(skipped).mockResolvedValueOnce(null)
     authMocks.skipOnboarding.mockResolvedValue(skipped)
     const first = render(<App />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
     expect(await screen.findByRole('heading', { name: 'Set up your workspace' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Personal Goals' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }))
-    expect(await screen.findByRole('heading', { name: 'Personal Goals' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Set planning preferences' })).toBeInTheDocument()
     expect(authMocks.skipOnboarding).toHaveBeenCalledOnce()
 
     first.unmount()
     render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
     expect(await screen.findByRole('button', { name: 'Set planning preferences' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Skip for now' })).not.toBeInTheDocument()
   })
@@ -137,6 +184,7 @@ describe('App', () => {
       .mockResolvedValueOnce({ status: 'completed', ...fields })
       .mockResolvedValueOnce({ status: 'completed', ...fields, planning_time: '09:00' })
     render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
 
     fireEvent.change(await screen.findByLabelText('Primary focus'), { target: { value: fields.primary_focus } })
     fireEvent.change(screen.getByLabelText('Current goals'), { target: { value: fields.current_goals } })
@@ -154,16 +202,16 @@ describe('App', () => {
     expect(authMocks.saveOnboarding).toHaveBeenLastCalledWith({ ...fields, planning_time: '09:00' })
   })
 
-  it('keeps Goals accessible when onboarding preferences cannot load', async () => {
+  it('shows a retryable Settings error when onboarding preferences cannot load', async () => {
     authMocks.useSession.mockReturnValue({
       data: { user: { id: 'test-user', email: 'person@example.test' } },
       isPending: false,
       refetch: authMocks.refetch,
     })
-    authMocks.loadOnboarding.mockRejectedValueOnce(new Error('Offline'))
+    authMocks.loadOnboarding.mockResolvedValueOnce(skipped).mockRejectedValueOnce(new Error('Offline'))
     render(<App />)
-    expect(await screen.findByText('Could not load onboarding preferences.')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Personal Goals' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load onboarding preferences.')
     fireEvent.click(screen.getByRole('button', { name: 'Retry preferences' }))
     expect(await screen.findByRole('button', { name: 'Set planning preferences' })).toBeInTheDocument()
   })

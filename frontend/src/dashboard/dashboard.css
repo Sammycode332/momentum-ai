@@ -1,0 +1,108 @@
+.dashboard {
+  display: grid;
+  gap: 16px;
+  animation: dashboard-enter 180ms ease-out;
+}
+
+.dashboard-welcome, .dashboard-assistant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(16px, 3vw, 25px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.dashboard-welcome {
+  background: linear-gradient(115deg, var(--surface-raised) 45%, var(--accent-soft));
+}
+
+.dashboard-welcome > div, .dashboard-assistant > div { min-width: 0; }
+.dashboard-welcome h1 { overflow-wrap: anywhere; }
+.dashboard-welcome p:not(.eyebrow), .dashboard-assistant p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+.dashboard-welcome .dashboard-focus { margin-top: 12px; overflow-wrap: anywhere; }
+.dashboard-focus strong { margin-right: 5px; color: var(--text); }
+.dashboard-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; }
+
+.dashboard-metrics, .dashboard-columns { display: grid; gap: 12px; margin: 0; }
+.dashboard-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dashboard-columns { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); }
+.dashboard-stack, .dashboard-loading { display: grid; align-content: start; gap: 12px; min-width: 0; }
+.dashboard-metric, .dashboard-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dashboard-metric:hover, .dashboard-panel:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  box-shadow: var(--shadow);
+}
+
+.dashboard-metric { padding: 13px; }
+.dashboard-metric dt, .dashboard-metric dd { display: flex; align-items: center; gap: 8px; }
+.dashboard-metric dt { color: var(--muted); font-size: 12px; font-weight: 650; }
+.dashboard-metric dd { flex-wrap: wrap; justify-content: space-between; margin: 8px 0 0; }
+.dashboard-metric dd strong { font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; }
+.dashboard-metric small { color: var(--muted); font-size: 11px; }
+.dashboard-symbol {
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 16px;
+}
+
+.dashboard-panel { padding: 0 14px; }
+.dashboard-panel > header, .dashboard-row, .dashboard-project > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dashboard-panel > header { min-height: 51px; }
+.dashboard-panel .text-button { color: var(--accent-strong); min-height: 44px; text-align: right; }
+.dashboard-panel ul { margin: 0; padding: 0; list-style: none; }
+.dashboard-row, .dashboard-project { padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.dashboard-row > div, .dashboard-project strong { min-width: 0; overflow-wrap: anywhere; }
+.dashboard-row p, .dashboard-project span, .dashboard-empty { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.dashboard-row p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.dashboard-row .badge { flex-shrink: 0; color: var(--accent-strong); }
+.dashboard-project span { white-space: nowrap; }
+.dashboard-project progress { display: block; width: 100%; height: 5px; margin-top: 8px; accent-color: var(--accent); }
+.dashboard-empty { margin: 0; padding: 10px 0 16px; }
+.dashboard-assistant { justify-content: flex-start; padding: 12px 14px; }
+.dashboard-assistant > div { flex: 1; }
+.dashboard-assistant button { min-height: 44px; }
+.dashboard .skeleton::after { animation-iteration-count: 2; }
+.dashboard-loading .dashboard-panel { min-height: 142px; padding-top: 16px; }
+
+@keyframes dashboard-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 1080px) {
+  .dashboard-welcome { flex-wrap: wrap; }
+  .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 420px) {
+  .dashboard-metric dt { align-items: flex-start; flex-direction: column; }
+  .dashboard-assistant { flex-wrap: wrap; }
+  .dashboard-actions button { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard, .dashboard .skeleton::after { animation: none; }
+  .dashboard-metric, .dashboard-panel { transition: none; }
+}

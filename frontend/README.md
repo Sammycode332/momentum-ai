@@ -1,32 +1,16 @@
-# React + TypeScript + Vite
+# Momentum AI frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React, TypeScript, Vite and Tailwind CSS v4. See the root README for complete setup.
 
-Currently, two official plugins are available:
+Copy `.env.example` to `.env`, configure the public Neon Auth URL, then run `npm ci` and `npm run dev`.
+The development proxy targets `http://127.0.0.1:8001`; override `MOMENTUM_DEV_API_TARGET` before starting Vite when needed.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Checks: `npm run lint`, `npm test`, `npm run build`.
 
-## React Compiler
+`VITE_SUPPORT_EMAIL` configures the public contact link in Settings. `VITE_GOOGLE_SIGN_IN_ENABLED=true` displays Google sign-in only after the operator has configured and verified Google OAuth in Neon. Never put provider secrets or database credentials in Vite variables.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Password recovery uses Neon request/reset methods and a same-origin `/?flow=reset-password` return address. The reset token is kept in component memory and removed from the visible URL. Email delivery, trusted origins, and callback behavior need live verification in each deployment.
 
-## Expanding the Oxlint configuration
+The assistant has Chat, Learn, Interview and Approvals modes. Settings groups profile, memory and data export. The service worker handles optional generic push notifications and does not cache private API responses.
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The Dockerfile prepares a same-origin frontend/API topology; see `.agent/deployment.md` at the repository root. Container and browser/device validation remain release gates.

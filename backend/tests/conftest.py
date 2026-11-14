@@ -10,6 +10,13 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from app.auth import NeonAccessTokenVerifier, NeonAuthSettings
 
 
+@pytest.fixture(autouse=True)
+def isolated_ai_budget(monkeypatch):
+    # API fixtures use synthetic tokens; never write usage to a configured live DB.
+    from app import limits
+    monkeypatch.setattr(limits, 'reserve_budget', lambda owner: None)
+
+
 @dataclass(frozen=True)
 class TestPrincipal:
     subject: str

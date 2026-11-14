@@ -2,18 +2,22 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
+import logging
+from os import getenv
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 import jwt
-from dotenv import load_dotenv
-from fastapi import Depends
+from dotenv import dotenv_values
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
-from jwt.exceptions import PyJWTError
+from jwt.exceptions import ExpiredSignatureError, ImmatureSignatureError, PyJWKClientConnectionError, PyJWTError
 
 from app.api_errors import ApiError
+
+logger = logging.getLogger(__name__)
 
 
 class AuthConfigurationError(ValueError):
@@ -27,15 +31,9 @@ class NeonAuthSettings:
 
     @classmethod
     def from_environment(cls) -> "NeonAuthSettings":
-        load_dotenv(
-            dotenv_path=Path(__file__).resolve().parents[1] / ".env",
-            override=False,
-        )
-
-        import os
-
-        jwks_url = os.getenv("NEON_AUTH_JWKS_URL")
-        auth_base_url = os.getenv("NEON_AUTH_BASE_URL")
+        local = dotenv_values(Path(__file__).resolve().parents[1] / ".env", encoding="utf-8-sig")
+        jwks_url = getenv("NEON_AUTH_JWKS_URL", local.get("NEON_AUTH_JWKS_URL"))
+        auth_base_url = getenv("NEON_AUTH_BASE_URL", local.get("NEON_AUTH_BASE_URL"))
         if not jwks_url or not auth_base_url:
             raise AuthConfigurationError("Neon Auth verification is not configured.")
 
@@ -79,6 +77,13 @@ class NeonAccessTokenVerifier:
                 issuer=self._issuer,
                 options={"require": ["exp", "iss", "sub"], "verify_aud": False},
             )
+        except ExpiredSignatureError:
+            raise ExpiredAccessTokenError from None
+        except ImmatureSignatureError as error:
+            raise FutureAccessTokenError from error
+        except PyJWKClientConnectionError:
+            logger.warning("Neon Auth signing keys could not be reached")
+            raise ApiError(503, "AUTH_KEYS_UNAVAILABLE", "Session verification is temporarily unavailable. Try again.") from None
         except (PyJWTError, ValueError, KeyError) as error:
             raise InvalidAccessTokenError from error
 
@@ -89,6 +94,14 @@ class NeonAccessTokenVerifier:
 
 
 class InvalidAccessTokenError(Exception):
+    pass
+
+
+class ExpiredAccessTokenError(InvalidAccessTokenError):
+    pass
+
+
+class FutureAccessTokenError(InvalidAccessTokenError):
     pass
 
 
@@ -108,6 +121,7 @@ def get_token_verifier() -> NeonAccessTokenVerifier:
 
 
 def require_authenticated_principal(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     verifier: NeonAccessTokenVerifier = Depends(get_token_verifier),
 ) -> AuthenticatedPrincipal:
@@ -120,7 +134,18 @@ def require_authenticated_principal(
 
     try:
         return verifier.verify(credentials.credentials)
-    except InvalidAccessTokenError:
+    except ExpiredAccessTokenError:
+        raise ApiError(401, "ACCESS_TOKEN_EXPIRED", "Your session has expired. Sign in again to continue.") from None
+    except FutureAccessTokenError:
+        logger.warning("Neon JWT rejected id=%s reason=ImmatureSignatureError",
+                       getattr(request.state, "diagnostic_id", "-"))
+        raise ApiError(401, "ACCESS_TOKEN_NOT_YET_VALID", "Session verification could not complete. Try again.") from None
+    except InvalidAccessTokenError as error:
+        logger.warning(
+            "Neon JWT rejected id=%s reason=%s",
+            getattr(request.state, "diagnostic_id", "-"),
+            type(error.__cause__).__name__ if error.__cause__ else "InvalidSubject",
+        )
         raise ApiError(
             status_code=401,
             code="INVALID_ACCESS_TOKEN",

@@ -1,5 +1,13 @@
 # Technical Architecture
 
+CORE-03 adds goal lifecycle PATCH/DELETE and a completion flag through migration 005 (prepared, not applied as of this checkpoint). Only incomplete goals enter the active-goal AI context. This application version must be rolled out after 005; follow the migration README. The runtime still has no schema-owner or tenant-bypass privileges.
+
+## Implemented state — release audit, 2026-11-13
+
+The foundation descriptions below include historical planning. Current FastAPI modules implement auth, goals, onboarding, shared five-domain CRUD, bounded planning context, Gemini provider, chat and conversation storage. Migrations 001–004 define nine private tables. Runtime catalog inspection confirmed `momentum_app`, no superuser/BYPASSRLS, forced active RLS on all nine, and grants matching the migration README. There is no migration ledger, so table presence does not prove exact historical SQL execution or schema equivalence. No migration was rerun.
+
+The frontend selects workspace views in React state; the active chat ID is in the URL. Assistant modes are loaded on demand. Later-phase code now includes approved memory, tutoring/interview sessions, action approvals, a Remotive cache and durable reminder/push workers; remote activation is unverified. Account export uses allowlisted bounded sections, verified-owner predicates and active RLS. Container/CI templates and a same-origin proxy are prepared, not deployed. See [release-plan.md](release-plan.md) for scope and gaps.
+
 ## Confirmed system direction
 
 The intended system comprises a React + TypeScript + Vite frontend styled with Tailwind CSS, a Python + FastAPI backend, Neon PostgreSQL with Neon Auth, REST communication, and a hosted AI model accessed through a replaceable provider interface. It is intended for online deployment from the start.

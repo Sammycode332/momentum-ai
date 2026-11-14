@@ -4,12 +4,13 @@ import type { FormEvent, ReactNode } from 'react'
 import { loadOnboarding, saveOnboarding, skipOnboarding } from './onboarding-api'
 import type { Onboarding, Preferences } from './onboarding-api'
 
-const inputClass = 'w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2'
+const inputClass = 'field'
 const emptyPreferences: Preferences = { primary_focus: '', current_goals: '', planning_time: '' }
 
 export function OnboardingPreferences({ children }: { children: ReactNode }) {
   const [record, setRecord] = useState<Onboarding | null | undefined>(undefined)
   const [loadError, setLoadError] = useState(false)
+  const [loadErrorMessage, setLoadErrorMessage] = useState('')
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(emptyPreferences)
@@ -22,8 +23,11 @@ export function OnboardingPreferences({ children }: { children: ReactNode }) {
       (result) => {
         if (!controller.signal.aborted) setRecord(result)
       },
-      () => {
-        if (!controller.signal.aborted) setLoadError(true)
+      (error) => {
+        if (!controller.signal.aborted) {
+          setLoadErrorMessage(error instanceof Error ? error.message : 'Planning preferences are temporarily unavailable.')
+          setLoadError(true)
+        }
       },
     )
     return () => controller.abort()
@@ -55,12 +59,13 @@ export function OnboardingPreferences({ children }: { children: ReactNode }) {
   }
 
   if (record === undefined) {
-    if (!loadError) return <p role="status" className="mt-6">Loading onboarding preferences…</p>
+    if (!loadError) return <p role="status" className="state-copy">Loading onboarding preferences…</p>
     return (
       <>
-        <p role="alert" className="mt-6 text-rose-300">Could not load onboarding preferences.</p>
-        <button type="button" className="text-cyan-300 underline" onClick={() => {
+        <p role="alert" className="feedback-error">Could not load onboarding preferences. {loadErrorMessage}</p>
+        <button type="button" className="text-button" onClick={() => {
           setLoadError(false)
+          setLoadErrorMessage('')
           setLoadAttempt((attempt) => attempt + 1)
         }}>Retry preferences</button>
         {children}
@@ -71,37 +76,37 @@ export function OnboardingPreferences({ children }: { children: ReactNode }) {
   const showForm = record === null || editing
   return (
     <>
-      <section className="mt-6 space-y-3 border-t border-slate-700 pt-6" aria-labelledby="onboarding-title">
-        <h2 id="onboarding-title" className="text-xl font-semibold">
+      <section className="settings-panel" aria-labelledby="onboarding-title">
+        <h2 id="onboarding-title">
           {record === null ? 'Set up your workspace' : 'Planning preferences'}
         </h2>
         {showForm ? (
-          <form onSubmit={submit} className="space-y-3">
-            <fieldset disabled={busy} className="space-y-3">
-              <label className="block">
+          <form onSubmit={submit} className="preferences-form">
+            <fieldset disabled={busy}>
+              <label>
                 Primary focus
                 <input className={inputClass} value={draft.primary_focus} maxLength={120} required
                   onChange={(event) => setDraft({ ...draft, primary_focus: event.target.value })} />
               </label>
-              <label className="block">
+              <label>
                 Current goals
                 <textarea className={inputClass} value={draft.current_goals} maxLength={1000} required
                   onChange={(event) => setDraft({ ...draft, current_goals: event.target.value })} />
               </label>
-              <label className="block">
+              <label>
                 Preferred daily planning time
                 <input className={inputClass} type="time" value={draft.planning_time} required
                   onChange={(event) => setDraft({ ...draft, planning_time: event.target.value })} />
               </label>
-              <div className="flex flex-wrap gap-3">
-                <button type="submit" className="rounded-md bg-cyan-300 px-3 py-2 font-semibold text-slate-950 disabled:opacity-60"
+              <div className="inline-form">
+                <button type="submit" className="button-primary"
                   disabled={!draft.primary_focus.trim() || !draft.current_goals.trim() || !draft.planning_time}>
                   {busy ? 'Saving…' : 'Save preferences'}
                 </button>
                 {record === null ? (
-                  <button type="button" onClick={() => void persist(skipOnboarding)}>Skip for now</button>
+                  <button type="button" className="button-secondary" onClick={() => void persist(skipOnboarding)}>Skip for now</button>
                 ) : (
-                  <button type="button" onClick={() => {
+                  <button type="button" className="button-secondary" onClick={() => {
                     setEditing(false)
                     setFeedback(null)
                   }}>Cancel</button>
@@ -112,13 +117,13 @@ export function OnboardingPreferences({ children }: { children: ReactNode }) {
         ) : (
           <>
             {record.status === 'completed' && (
-              <dl className="space-y-2 text-slate-200">
+              <dl className="preference-summary">
                 <div><dt>Primary focus</dt><dd className="break-words">{record.primary_focus}</dd></div>
                 <div><dt>Current goals</dt><dd className="whitespace-pre-wrap break-words">{record.current_goals}</dd></div>
                 <div><dt>Preferred daily planning time</dt><dd>{record.planning_time}</dd></div>
               </dl>
             )}
-            <button type="button" className="text-cyan-300 underline" onClick={() => {
+            <button type="button" className="text-button" onClick={() => {
               setDraft(record.status === 'completed' ? {
                 primary_focus: record.primary_focus,
                 current_goals: record.current_goals,
@@ -129,8 +134,8 @@ export function OnboardingPreferences({ children }: { children: ReactNode }) {
             }}>{record.status === 'completed' ? 'Edit preferences' : 'Set planning preferences'}</button>
           </>
         )}
-        {feedback === 'error' && <p role="alert" className="text-rose-300">Could not save onboarding. Try again.</p>}
-        {feedback === 'saved' && <p role="status" className="text-cyan-200">Preferences saved.</p>}
+        {feedback === 'error' && <p role="alert" className="feedback-error">Could not save onboarding. Try again.</p>}
+        {feedback === 'saved' && <p role="status" className="feedback-success">Preferences saved.</p>}
       </section>
       {record !== null && children}
     </>

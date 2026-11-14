@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 
 import { authClient } from './auth-client'
+import { PasswordRecovery } from './PasswordRecovery'
 
 type AuthMode = 'sign-in' | 'sign-up' | 'verify-email'
 
@@ -42,6 +43,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProps) {
+  const [recovery, setRecovery] = useState(() => new URLSearchParams(location.search).get('flow') === 'reset-password')
   const [mode, setMode] = useState<AuthMode>('sign-in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -175,17 +177,19 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
     }
   }
 
+  if (recovery) return <PasswordRecovery onBack={() => setRecovery(false)} />
+
   return (
-    <section className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-8 shadow-xl">
-      <p className="text-sm font-medium text-cyan-300">Momentum AI</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+    <section className="auth-card">
+      <p className="eyebrow">Momentum AI</p>
+      <h1>
         {mode === 'sign-in'
           ? 'Welcome back'
           : mode === 'sign-up'
             ? 'Create your workspace'
             : 'Verify your email'}
       </h1>
-      <p className="mt-3 text-slate-300">
+      <p className="auth-copy">
         {mode === 'sign-in'
           ? 'Sign in to continue your Momentum AI journey.'
           : mode === 'sign-up'
@@ -194,16 +198,22 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
       </p>
 
       {sessionError ? (
-        <p role="alert" className="mt-4 text-sm text-rose-300">
+        <p role="alert" className="feedback-error">
           Your session could not be restored. Sign in again and verify that this browser origin is trusted in Neon Auth.
         </p>
       ) : null}
 
-      <form className="mt-6 space-y-4" onSubmit={submit}>
-        <label className="block text-sm font-medium text-slate-200">
+      {mode !== 'verify-email' && import.meta.env.VITE_GOOGLE_SIGN_IN_ENABLED === 'true' && <button className="button-secondary wide auth-link" disabled={isSubmitting} onClick={async () => {
+        setIsSubmitting(true); setError(null)
+        try { const result = await authClient.signIn.social({ provider: 'google', callbackURL: location.origin }); if (result.error) throw new Error('OAuth failed') }
+        catch { setError('Google sign-in is unavailable. Try email sign-in instead.') }
+        finally { setIsSubmitting(false) }
+      }}>Continue with Google</button>}
+      <form className="auth-form" onSubmit={submit}>
+        <label>
           Email
           <input
-            className="mt-1 w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-slate-50"
+            className="field"
             type="email"
             autoComplete="email"
             required={mode === 'verify-email'}
@@ -216,10 +226,10 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
           />
         </label>
         {mode === 'verify-email' ? (
-          <label className="block text-sm font-medium text-slate-200">
+          <label>
             Verification code
             <input
-              className="mt-1 w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-slate-50"
+              className="field"
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
@@ -229,10 +239,10 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
             />
           </label>
         ) : (
-            <label className="block text-sm font-medium text-slate-200">
+            <label>
               Password
               <input
-                className="mt-1 w-full rounded-md border border-slate-600 bg-slate-950 px-3 py-2 text-slate-50"
+                className="field"
                 type="password"
                 autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
                 value={password}
@@ -241,10 +251,10 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
               />
             </label>
         )}
-        {error ? <p role="alert" className="text-sm text-rose-300">{error}</p> : null}
-        {notice ? <p role="status" className="text-sm text-cyan-200">{notice}</p> : null}
+        {error ? <p role="alert" className="feedback-error">{error}</p> : null}
+        {notice ? <p role="status" className="feedback-success">{notice}</p> : null}
         <button
-          className="w-full rounded-md bg-cyan-300 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary wide"
           type="submit"
           disabled={isSubmitting || isResending}
         >
@@ -258,7 +268,7 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
         </button>
         {mode === 'verify-email' ? (
           <button
-            className="text-sm text-cyan-300 underline disabled:cursor-not-allowed disabled:opacity-60"
+            className="text-button"
             type="button"
             onClick={(event) => {
               if (event.currentTarget.form?.reportValidity()) {
@@ -272,9 +282,11 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
         ) : null}
       </form>
 
+      {mode === 'sign-in' && <button className="text-button auth-link" disabled={isSubmitting} onClick={() => { setPassword(''); setRecovery(true) }}>Forgot password?</button>}
+
       {mode === 'sign-in' ? (
         <button
-          className="mt-4 block text-sm text-cyan-300 underline disabled:opacity-60"
+          className="text-button auth-link"
           type="button"
           onClick={() => {
             setError(null)
@@ -289,7 +301,7 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
       ) : null}
 
       <button
-        className="mt-5 text-sm text-cyan-300 underline"
+        className="text-button auth-link"
         type="button"
         onClick={() => {
           setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')

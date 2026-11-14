@@ -1,4 +1,4 @@
-import { authClient } from '../auth/auth-client'
+import { authenticatedFetch, requireSuccess } from '../auth/authenticated-fetch'
 
 export type Preferences = {
   primary_focus: string
@@ -11,18 +11,8 @@ export type Onboarding =
   | { status: 'skipped'; primary_focus: null; current_goals: null; planning_time: null }
 
 async function request<T>(suffix = '', options: RequestInit = {}): Promise<T> {
-  const session = await authClient.getSession()
-  const token = session?.data?.session?.token
-  if (!token) throw new Error('An authenticated session is required.')
-
-  const headers = new Headers(options.headers)
-  headers.set('Authorization', `Bearer ${token}`)
-  const response = await fetch(`/api/v1/onboarding${suffix}`, {
-    ...options,
-    headers,
-    cache: 'no-store',
-  })
-  if (!response.ok) throw new Error('The onboarding request failed.')
+  const response = await authenticatedFetch(`/api/v1/onboarding${suffix}`, options)
+  await requireSuccess(response, 'Planning preferences are temporarily unavailable. Please try again.')
   return response.json() as Promise<T>
 }
 

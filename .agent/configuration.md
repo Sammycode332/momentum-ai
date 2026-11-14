@@ -1,5 +1,9 @@
 # Environment, Configuration, and Secrets Conventions
 
+## Isolated local diagnosis
+
+Default Vite development proxy remains `http://127.0.0.1:8001`. To test a separate backend without stopping an existing instance, set server-process `MOMENTUM_DEV_API_TARGET=http://127.0.0.1:8002`, run Uvicorn on port 8002, and run Vite on the existing trusted frontend port. This variable is not exposed through a `VITE_` prefix. Bind Vite to IPv4 loopback if localhost IPv6 is unreachable, but continue browsing the trusted `http://localhost:5173` origin. Do not change authentication trusted origins to work around verification failures.
+
 This document establishes the FND-02 configuration boundary. It does not select a hosting provider, secret manager, AI provider, or runtime configuration library.
 
 ## Repository convention
@@ -43,3 +47,11 @@ Choosing a backend settings library, dotenv loader, secret manager, provider SDK
 ## Verification
 
 When this convention changes, use `git check-ignore -v --no-index` to inspect the effective ignore rule for real environment paths and template exceptions. Confirm templates are trackable with `git ls-files --others --exclude-standard`. Inspect tracked filenames and the diff for accidental credential-bearing files or values, and run `git diff --check`.
+
+### AI-01 live smoke test
+
+1. Use a development account with synthetic productivity records. On the Neon development branch, confirm migrations 001–003 and their documented runtime grants are in place. Use the existing restricted backend role.
+2. In the ignored `backend/.env` or backend process environment, configure both `GEMINI_API_KEY` and `GEMINI_MODEL`. The backend uses the explicitly configured model. Verify it is available to the key and the Gemini configuration is approved for the data sent to it before using real user records.
+3. With a working Python environment, run `python -m pip install -e ".[test]"` and `python -m uvicorn app.main:app --host 127.0.0.1 --port 8001` from `backend/`. Run `npm run dev` from `frontend/` and open the trusted local Neon Auth origin.
+4. Sign in, create a synthetic project and a linked high-priority task due today, and open AI Assistant. Send “Which of my tasks should I prioritize today, and why?” Check that the reply grounds its advice in the account’s records. Send “What should I do first if I only have 15 minutes?” to confirm the follow-up uses the preceding turns.
+5. For a structured planning check, open Structured planner and generate a 30-minute plan. Check the time total, record references, and that the task and project are unchanged.

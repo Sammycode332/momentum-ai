@@ -7,13 +7,17 @@ from app.auth import InvalidAccessTokenError, get_token_verifier
 from app.main import app
 
 
-def test_openapi_includes_the_authentication_probe_goals_and_onboarding() -> None:
+def test_openapi_includes_the_private_api_routes() -> None:
     with TestClient(app) as client:
         response = client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert set(response.json()["paths"]) == {
-        "/api/v1/auth/me", "/api/v1/goals", "/api/v1/onboarding", "/api/v1/onboarding/skip"
+    assert set(response.json()["paths"]) >= {
+        "/api/v1/auth/me", "/api/v1/goals", "/api/v1/onboarding", "/api/v1/onboarding/skip",
+        "/api/v1/goals/{goal_id}",
+        "/api/v1/{domain}", "/api/v1/{domain}/{record_id}", "/api/v1/ai/plan", "/api/v1/ai/chat",
+        "/api/v1/ai/conversations", "/api/v1/ai/conversations/{chat_id}",
+        "/api/v1/ai/conversations/{chat_id}/messages", "/api/v1/ai/conversations/{chat_id}/turns",
     }
 
 
@@ -53,7 +57,7 @@ def test_verifier_rejects_a_token_from_another_issuer(
         token_verifier.verify(other_issuer_token)
 
 
-def test_protected_endpoint_rejects_missing_and_malformed_tokens(token_verifier) -> None:
+def test_protected_endpoint_rejects_missing_and_malformed_tokens(token_verifier, caplog) -> None:
     app.dependency_overrides[get_token_verifier] = lambda: token_verifier
     try:
         with TestClient(app) as client:
@@ -73,6 +77,8 @@ def test_protected_endpoint_rejects_missing_and_malformed_tokens(token_verifier)
         }
     }
     assert malformed.status_code == 401
+    assert f"id={malformed.headers['x-request-id']} reason=DecodeError" in caplog.text
+    assert "not-a-jwt" not in caplog.text
     assert malformed.json() == {
         "error": {
             "code": "INVALID_ACCESS_TOKEN",
@@ -97,3 +103,34 @@ def test_protected_endpoint_returns_only_the_verified_subject(
 
     assert response.status_code == 200
     assert response.json() == {"subject": "test-user-b"}
+
+
+def test_protected_endpoint_distinguishes_expired_token(monkeypatch, token_verifier, access_token):
+    monkeypatch.setitem(app.dependency_overrides, get_token_verifier, lambda: token_verifier)
+    token = access_token(expires_in=timedelta(seconds=-1))
+    with TestClient(app) as client:
+        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "ACCESS_TOKEN_EXPIRED"
+
+
+@pytest.mark.parametrize("claim", ["iat", "nbf"])
+def test_future_tokens_are_diagnosed_without_accepting_them(
+    monkeypatch, token_verifier, token_signing_key, neon_auth_settings, claim, caplog,
+):
+    from datetime import UTC, datetime
+    import jwt
+
+    now = datetime.now(UTC)
+    token = jwt.encode({
+        "sub": "synthetic-user", "iss": neon_auth_settings.issuer,
+        "exp": now + timedelta(minutes=5), claim: now + timedelta(minutes=1),
+    }, token_signing_key, algorithm="EdDSA", headers={"kid": "test-key"})
+    monkeypatch.setitem(app.dependency_overrides, get_token_verifier, lambda: token_verifier)
+    with TestClient(app) as client:
+        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+    assert response.json()["error"]["code"] == "ACCESS_TOKEN_NOT_YET_VALID"
+    assert "ImmatureSignatureError" in caplog.text
+    assert token not in caplog.text
+    assert "synthetic-user" not in caplog.text

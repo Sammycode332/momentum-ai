@@ -13,7 +13,8 @@ class ApiError(Exception):
     details: dict[str, Any] | None = None
 
 
-async def api_error_handler(_: Request, error: ApiError) -> JSONResponse:
+async def api_error_handler(request: Request, error: ApiError) -> JSONResponse:
+    request.state.diagnostic_code = error.code
     body: dict[str, Any] = {
         "error": {
             "code": error.code,
@@ -22,4 +23,4 @@ async def api_error_handler(_: Request, error: ApiError) -> JSONResponse:
     }
     if error.details:
         body["error"]["details"] = error.details
-    return JSONResponse(status_code=error.status_code, content=body)
+    return JSONResponse(status_code=error.status_code, content=body, headers={"Cache-Control": "no-store"})

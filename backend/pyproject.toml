@@ -5,10 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "momentum-ai-backend"
 version = "0.1.0"
-dependencies = ["fastapi", "uvicorn", "PyJWT[crypto]", "python-dotenv", "psycopg[binary]>=3.2,<4"]
+dependencies = ["fastapi", "uvicorn", "PyJWT[crypto]", "python-dotenv", "psycopg[binary]>=3.2,<4", "google-genai>=1.70,<3", "httpx"]
 
 [project.optional-dependencies]
-test = ["pytest", "httpx"]
+test = ["pytest"]
+push = ["pywebpush>=2.0,<3"]
 
 [tool.setuptools]
 packages = ["app"]

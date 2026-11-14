@@ -8,7 +8,7 @@ import pytest
 def test_postgres_goals_policies_enforce_ownership():
     url = os.getenv("GOALS_TEST_DATABASE_URL")
     if not url:
-        pytest.skip("Set GOALS_TEST_DATABASE_URL to an isolated, migrated test database.")
+        pytest.skip("Set GOALS_TEST_DATABASE_URL to an isolated test database with migrations 001 and 005.")
 
     owner, other = str(uuid4()), str(uuid4())
     goal_id = uuid4()
@@ -35,19 +35,31 @@ def test_postgres_goals_policies_enforce_ownership():
                         "INSERT INTO public.momentum_goals (id, owner_id, title) VALUES (%s, %s, %s)",
                         (uuid4(), owner, "Spoofed goal"),
                     )
-                try:
-                    with connection.transaction():
-                        result = connection.execute(
-                            "UPDATE public.momentum_goals SET title = %s WHERE id = %s",
-                            ("Spoofed update", goal_id),
-                        )
-                        assert result.rowcount == 0
-                except psycopg.errors.InsufficientPrivilege:
-                    pass
+                result = connection.execute(
+                    "UPDATE public.momentum_goals SET title = %s, completed = true WHERE id = %s",
+                    ("Spoofed update", goal_id),
+                )
+                assert result.rowcount == 0
+                assert connection.execute(
+                    "DELETE FROM public.momentum_goals WHERE id = %s", (goal_id,),
+                ).rowcount == 0
                 connection.execute("SELECT set_config('momentum.user_id', '', true)")
                 assert connection.execute(
                     "SELECT id FROM public.momentum_goals WHERE id = %s", (goal_id,)
                 ).fetchone() is None
+                connection.execute("SELECT set_config('momentum.user_id', %s, true)", (owner,))
+                assert connection.execute(
+                    "UPDATE public.momentum_goals SET title = %s, completed = true WHERE id = %s RETURNING title, completed",
+                    ("Updated synthetic goal", goal_id),
+                ).fetchone() == ("Updated synthetic goal", True)
+                with pytest.raises(psycopg.errors.InsufficientPrivilege), connection.transaction():
+                    connection.execute("UPDATE public.momentum_goals SET owner_id = %s WHERE id = %s", (other, goal_id))
+                assert connection.execute(
+                    "UPDATE public.momentum_goals SET completed = false WHERE id = %s RETURNING completed", (goal_id,),
+                ).fetchone() == (False,)
+                assert connection.execute(
+                    "DELETE FROM public.momentum_goals WHERE id = %s", (goal_id,),
+                ).rowcount == 1
             finally:
                 connection.rollback()
     except psycopg.Error:

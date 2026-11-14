@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://127.0.0.1:8001',
+      '/api': process.env.MOMENTUM_DEV_API_TARGET || 'http://127.0.0.1:8001',
     },
   },
 })

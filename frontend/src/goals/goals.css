@@ -1,0 +1,10 @@
+.goal-toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:16px; margin-top:24px; }
+.goal-toolbar label { display:grid; gap:6px; color:var(--muted); font-size:13px; }
+.goal-toolbar label:first-child { flex:1; min-width:180px; }
+.goal-row { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; }
+.goal-label { display:grid; gap:8px; min-width:0; flex:1; overflow-wrap:anywhere; }
+.goal-label .badge { justify-self:start; }
+.goal-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.goal-edit { display:grid; gap:12px; width:100%; }
+.goal-edit label { display:grid; gap:6px; }
+@media(max-width:600px) { .goal-row { align-items:flex-start; flex-direction:column; } .goal-toolbar label { width:100%; } }

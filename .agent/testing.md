@@ -1,5 +1,18 @@
 # Testing Strategy
 
+## Goal lifecycle acceptance
+
+CORE-03 adds signed-principal API tests for partial title/completion updates, complete/reopen, deletion, nonexistent/foreign IDs, spoofed owners, invalid/null fields, unauthenticated mutation and inactive-RLS failure. UI tests exercise edit → complete → reopen → delete, cancelled deletion, retained failed edits and filtering/counts from saved records. The SQL goals test now requires migrations 001 and 005 plus the restricted grants; it no longer accepts missing UPDATE permission as sufficient isolation proof. It must demonstrate owner update/delete success and cross-user denial in a rolled-back transaction.
+
+## Release reliability regressions — 2026-11-13
+
+- Sign-out returned and thrown failures show safe retry feedback; a subsequent success refetches the session.
+- Initial session acquisition failures are redacted; later requests recover. Concurrent-token tests wait for the observable acquisition event rather than assuming a fixed microtask count.
+- Synthetic signed JWTs with future `iat` or `nbf` remain rejected; logs omit tokens and subjects.
+- Core record POST/PUT reject overlong descriptions, NUL text and ownership injection before opening storage, across the five domains.
+- Run `python -m app.schema_audit` for read-only table/RLS/grant metadata. It does not inspect private records, apply migrations or substitute for isolation tests.
+- Browser evidence: observed rejected Overview, then a successful signed-in Overview after restoring the local development server. Hard-refresh lifecycle and Network correlation are unfinished because Computer Use stopped on URL-confidence enforcement.
+
 Testing must demonstrate behavior and safety, with controlled fixtures or test copies for any test that modifies user records. Never target uncontrolled user data.
 
 ## Tooling and commands
@@ -42,3 +55,40 @@ Initial scenarios:
 5. **Safe autonomy and task recovery:** allow only consented routine reprioritization and rescheduling, require approval for consequential changes, log every action, and preserve a clear recovery/reversal path; reject out-of-scope changes.
 
 Record scenario fixtures, expected critical outcomes, test commands, and pass/fail evidence once tooling is chosen.
+
+
+## 2026-11-13 focused checks
+
+- Backend existing suite: 87 passed, 2 isolated PostgreSQL tests skipped.
+- tests/test_release_features.py: 12 passed; disabled personalization, tutor progression constraints, quiet-hour/DST behavior, untrusted push destinations, source deduplication, applied-action retry, memory input boundaries, authenticated routes and oversized request rejection. Uses synthetic fixtures, no live AI generations. New usage store is stubbed in existing API tests to prevent live writes; its concurrent database enforcement still needs isolated PostgreSQL validation.
+- Frontend suite: 43 passed before final navigation consolidation. Final consolidation checked with npm run build and npm run lint (both passed). No broad suite repetition for reversible navigation/style changes.
+- Browser: localhost preview timed out; no screenshots or final visual/accessibility review.
+
+## 2026-11-14 incremental verification
+
+`python -m pytest tests/test_account.py tests/test_app.py -q`: 13 passed. Covers export owner scoping, bounded pagination, secret-section denial, missing authentication, offset bounds and liveness alongside auth regressions. Synthetic fixtures only.
+`npm test -- src/auth/PasswordRecovery.test.tsx --reporter=dot`: 2 passed. Covers fixed-origin callback/generic messaging and URL-token removal/matching-password submission using a mocked SDK.
+Final `npm run build` and `npm run lint` passed. No broad suite repetition. Container verification could not run because Docker engine was unavailable. Read-only schema audit could not connect; no remote state was verified or changed.
+
+## Feature-first checkpoint 2026-11-14
+
+Owner asked to build missing features before broader testing. For connected productivity/chat workflows, ran frontend build/lint and backend import/enum-validation checks only; no new broad suite or real mutations. New database migration/application, responsive browser behavior and end-to-end proposal/reminder/project flows remain unverified. Read-only storage diagnostic failed at runtime authentication and printed only safe categories.
+
+Notification usability checkpoint: API import plus valid/oversized batch validation checked without database/provider access; broad workflow suites deferred. Browser and live worker verification remain pending.
+
+## Chat task creation regression
+
+- `test_chat_actions.py` covers invalid provider output, timezone boundaries, unconfirmed claims, and the opt-in restricted PostgreSQL lifecycle using signed synthetic identities and a rolled-back outer transaction. It uses the normal chat, approve/reject, and Tasks list APIs. It also forces a write-path failure after insertion to check rollback, retries approval to check deduplication, and verifies an outsider cannot act on the proposal.
+- `ChatTaskProposal.test.tsx` checks pending, failure, retry, confirmed success, rejection, and rendering the saved task on Tasks mount. The frontend test uses API fixtures. A separate live Gemini smoke request verified extraction of the synthetic reproduction. The owner subsequently verified the request, approval, and saved task in a real signed-in browser.
+- Backend suite with restricted development PostgreSQL fixtures: 123 passed. Focused chat task suite including direct RLS assertions: 15 passed. Frontend suite: 47 passed. Production build and lint passed.
+
+## Workspace reads and task edits
+
+- Focused backend suite: 66 passed, including owner-isolated workspace answers and the approval, rollback, rejection, retry, and fresh Tasks-fetch checks through the restricted development PostgreSQL role. Synthetic records were rolled back.
+- Final local workspace and task checks: 25 passed, including the saved-chat timezone route and stale proposal rejection. Focused frontend suite: 6 passed. Production build passed. The owner subsequently verified workspace reads and approved task edits in a real signed-in browser.
+
+## Goal creation and roadmap approval
+
+- Focused restricted PostgreSQL and backend suite: 51 passed. Used signed synthetic subjects and rolled-back records. Verified goal listing, selective roadmap approval, real goal/project/milestone/subtask links, replay receipts, rejection, late transaction failure, and cross-user API denial.
+- Goal draft and workspace progress checks: 10 passed. Verified timezone-aware calendar-month boundaries, ambiguous drafts, malformed provider output and provider failure. A separate synthetic Gemini roadmap generation matched the schema and date bounds.
+- Frontend goal and review tests: 9 passed. Build and lint passed. Signed-in browser acceptance remains outstanding for Milestone C.

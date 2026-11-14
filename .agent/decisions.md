@@ -1,5 +1,28 @@
 # Architecture Decision Records
 
+## ADR-025 — Feature completion boundaries (2026-11-13)
+
+- Extend the existing PostgreSQL/RLS and Gemini adapter; no replacement stack. New migrations are additive and remain separate from applied 001–004. A shared owner-scoped cursor verifies active RLS before setting transaction-local identity; all services also filter by owner.
+- Memory remains pending until explicit approval. Corrections reset approval. Audit only action/target/time, not memory text. Personalization can be disabled. Retrieve at most five approved memories by lexical relevance; explicit user instructions take precedence.
+- Tutoring and interview sessions persist structured curriculum/questions, user answers and bounded AI feedback. A lesson is not mastered by viewing it. Rubric scores are formative model judgments, not hiring predictions. A submitted answer is evaluated once per step via an idempotent request ID and row lock.
+- AI actions are typed proposals; execution requires an explicit authenticated approve request, a pending row lock, normal ownership checks and one transaction with audit. No automatic execution or SQL tools.
+- Durable reminders use PostgreSQL scheduling state and a separate worker process, with a separate least-privilege scheduler role. No browser timer is the delivery mechanism. External push requires configured VAPID keys and supported devices; no paid service is selected.
+- Live discovery will use authorized sources only and expose source limitations. Unsupported categories must show no-provider information, not generated listings. Provider credentials/costs, production rollout and schema-owner activation remain external gates.
+
+## ADR-024 — Goal lifecycle (2026-11-13)
+
+- Extend personal goals with a `completed` boolean, initially false. Completion is a user assertion, not AI-assessed mastery. Use authenticated PATCH for title/completion and DELETE for explicit removal. Partial updates prevent toggling completion from overwriting the title.
+- Migration 005 adds the column, owner-only UPDATE/DELETE RLS and narrowly scoped runtime UPDATE(title, completed)/DELETE grants. Keep migrations 001–004 unchanged. Apply 005 before enabling the new backend version; rollback the app while retaining the column and data.
+- All queries retain explicit verified-owner filters and the active-RLS check. Missing/foreign IDs return the same 404. No new dependency or background task is needed.
+- At the owner's direction, later-phase implementation may proceed with the first-load authentication blocker deferred; this does not waive authentication or release verification gates.
+
+## ADR-023 — Release reliability increment (2026-11-13)
+
+- Keep the existing stack and strict JWT validation. Distinguish future-issued/not-before token rejection with `ACCESS_TOKEN_NOT_YET_VALID`; log only request reference and error class. This is diagnostic coverage, not a verified fix for the reported intermittent failure. No clock leeway, delays or request replay are introduced.
+- Limit new/updated core record descriptions to 4,000 characters and reject NUL in all record input strings before PostgreSQL. Existing stored records are not rewritten. This API boundary does not replace deployment request-body and rate limits.
+- Load the assistant via React lazy/Suspense to avoid loading Markdown and planning UI on Overview. Keep an accessible loading state.
+- Allow the development Vite proxy target to be set through server-side `MOMENTUM_DEV_API_TARGET` for isolated diagnosis; default stays port 8001. This is not a production proxy/CORS design.
+
 Use a new dated ADR for every material architecture choice. Do not change an ADR to hide history; supersede it with a later ADR.
 
 ## ADR-001 — Core technology direction
@@ -139,3 +162,73 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 - **Date:** 2026-11-13
 - **Status:** accepted
 - **Decision:** Collect primary focus, current goals as free text, and preferred daily planning time as a local HH:MM preference. Allow a persistent skip and later edits. Store one row per verified Neon Auth subject, with the same transaction-local identity and forced RLS pattern as Goals. The onboarding goals summary is separate from Personal Goals records.
+
+## ADR-017 — Core records schema and API
+
+- **Date:** 2026-11-13
+- **Status:** accepted for CORE-01
+- **Decision:** Add five owner-scoped tables through one transactional migration and expose consistent authenticated CRUD routes at `/api/v1/{projects,tasks,learning,academics,opportunities}`. Every table uses forced RLS and owner policies for all CRUD operations. Tasks reference projects through a composite `(project_id, owner_id)` foreign key, and the API validates that a selected project belongs to the verified caller.
+- **Trade-offs:** A small shared route implementation keeps equivalent domain behavior consistent without introducing an ORM. It intentionally does not provide planning or dashboard prioritization, which remain CORE-02 work.
+
+## ADR-018 — Dashboard composition
+
+- **Date:** 2026-11-13
+- **Decision:** Derive the dashboard in the browser from the five existing authenticated record lists. Fetch onboarding separately for optional primary-focus personalization. Keep the backend as the authorization boundary and reuse the existing task and project creation forms.
+- **Dashboard rules:** Active means not started or in progress. Outstanding tasks include all incomplete tasks. Today’s priorities include incomplete tasks due today or overdue, sorted by due date and then priority. Upcoming deadlines include incomplete tasks, academic activities, and opportunities dated today through six days ahead in the browser’s local calendar.
+
+## ADR-019 — Read-only Gemini planning
+
+- **Date:** 2026-11-13
+- **Decision:** Use the Google Gen AI SDK behind a replaceable provider interface. The backend uses verified identity and existing RLS connections to select bounded context. Request-local aliases identify task and project references sent to Gemini. Validate output shape, time budget, and reference membership before returning the plan.
+- **Release boundary:** Enable live use only with a Gemini configuration approved for the data being sent. Keep plans in component state and provide no tools, record mutations, or memory persistence.
+
+## ADR-020 — Conversational assistant
+
+- **Decision:** Add authenticated `POST /api/v1/ai/chat` with bounded explicit user/assistant history and validated replies. Reuse the Gemini adapter and owner-scoped planning context. Keep the structured planner available separately. Keep chat history in page memory and send only recent turns; no history table is required.
+- **Configuration:** Read nonblank process values first and use the backend-local dotenv file for missing values. Require both the API key and an explicit model. Keep provider settings server-side.
+
+## Protected request token freshness
+
+- Reuse the Neon session adapter. If its cached token is opaque, expired, or within 15 seconds of expiry, coalesce one uncached Neon session fetch before dispatching private requests. This margin covers request transit and clock skew. FastAPI remains responsible for signature and claim verification. API responses are never replayed automatically.
+
+## ADR-021 — Assistant Markdown and streaming boundary
+
+- Render assistant text with react-markdown and an allowlist of formatting elements. Disable raw HTML, links, and images. Keep user messages as plain text.
+- Keep chat replies atomic and schema-validated. Defer streaming until the transport can distinguish incomplete output from a committed reply, propagate cancellation, and preserve history across interruptions.
+
+## ADR-022 — Persistent conversation history
+
+- Chat task creation uses the existing action store. A deterministic ID derived from the verified owner, conversation, and turn links the proposal to chat without a schema change. Persist the proposal, audit event, and assistant turn in one transaction. Only committed approval responses supply execution status. Task deadlines remain date-only.
+- Explicit questions about the caller's workspace use bounded, owner-scoped SQL and server-rendered summaries. They do not send records to the AI provider or depend on background personalization preferences. Today and the next seven calendar days use the browser timezone. Goal progress reports linked task completion separately from the goal's saved completion flag.
+- Conversational task edits propose one field at a time. The model extracts a search phrase and requested value. The backend resolves the phrase using owner-scoped search, records the old value and task version, and locks and rechecks the same task before applying the approved patch.
+- Milestone C stores goal description and target date in the action history because the Goals schema has title and completion only. Roadmap approval saves the goal and selected phases atomically. Each phase creates one project, one milestone task and its subtasks. Tasks link to the goal and project, and subtasks also link to the milestone. Sequence and workload estimates remain review metadata. Persist the execution receipt in the existing action JSON so approval retries can return the original record IDs.
+
+- Keep conversations and ordered messages in owner-scoped PostgreSQL tables. The client supplies an opaque turn ID for retry deduplication. Save the user turn before generation and append the assistant turn only after validation. Serialize generation for each conversation using a nonblocking row lock. A failed user turn can be retried with the same ID.
+- Keep only the active conversation ID in the URL. Fetch bounded recent history for display and send up to nine recent messages within the existing character budget to Gemini. Conversation history does not write to approved memory.
+
+
+## ADR-026 — Consolidated assistant and navigation
+
+2026-11-13, explicit owner direction: prioritize frontend and remove redundant standalone tutoring/interview navigation. AI Assistant offers Chat, Learn, Interview and Approvals modes. Guided practice retains its private session API and history; modes are not separate primary destinations. Keep visited modes mounted to preserve drafts and in-flight work while switching. Learning remains saved activities; opportunity discovery lives beside saved opportunities; approved memory is under Settings. No new UI dependency.
+
+## ADR-027 — Bounded account export and deployment baseline
+
+Authenticated users can export allowlisted workspace sections in stable, bounded pages. Never export push subscription endpoints/keys, provider secrets, bearer tokens or another owner. Every query requires active RLS and an explicit verified-owner predicate. A multi-page export is not a transactionally frozen snapshot; the download records this limitation. Do not label workspace clearing as Neon identity deletion. Full account erasure remains gated on provider identity deletion and an agreed audit/backup retention procedure.
+
+Prepare container/CI templates and a same-origin reverse proxy without choosing a paid host or deploying. Production TLS terminates at the chosen hosting ingress; backend stays private. A separate supervised scheduler runs the worker. Public liveness reports process health only; authenticated readiness checks are operational, not proof of full release readiness.
+
+## ADR-028 — Provider-managed account recovery
+
+Use the installed Neon SDK requestPasswordReset/resetPassword methods rather than custom recovery tokens. The return address is fixed to the current origin with flow=reset-password. Strip token/error query values when the recovery component mounts; retain the token only in memory. Request messaging does not confirm account existence. Google OAuth UI is gated behind an explicit public configuration flag, default false, until provider setup is verified. No provider credentials are generated or changed by this implementation.
+
+## ADR-029 — Connected productivity workflows
+
+Add opportunity application_stage independently of general record status, default saved, preserving prior status/data. Record reminder actions open an explicit editable one-off reminder composer; they copy title/date and are not advertised as automatically synchronized links. Project task/milestone views derive progress from saved task completion only. Overview goals/reminders use separately recoverable authenticated reads so an unavailable optional section does not hide core records. Owner requested feature-first implementation; run build/import checks here and defer broad workflow suites until integration.
+
+## ADR-030 — Check-in shortcuts and bounded inbox actions
+
+Reuse daily reminders for optional morning/evening check-ins. Shortcut buttons populate an editable composer; they do not save or enable anything without submission. An existing same-title scheduled daily reminder is opened for editing. Bulk notification state changes accept at most 100 explicit IDs, always filter by verified owner and active RLS, and do not revive dismissed notifications. UI labels make clear that counts/actions concern loaded records, not an unbounded inbox. No additional migration or provider cost.
+
+## ADR-031 — Safe reversal of approved deadline changes
+
+Only reschedule_task actions support automatic undo. Approval writes task updated_at and action applied_at using PostgreSQL transaction time; undo requires both the applied deadline and that timestamp to match. Any later task update prevents undo. Restore only the previous deadline, never delete AI-created records. Lock the owned proposal and target, and record reverted state/audit in the same transaction. Retry of an already reverted action is a no-op. Reschedule proposal titles come from the owned database task rather than AI-supplied text. Migration 014 extends action state/history; no remote application assumed.

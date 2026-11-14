@@ -1,5 +1,14 @@
 # Product Specification
 
+The [master specification](master-specification.md) is the authoritative release
+scope. It preserves all 22 sections and Phases 0–9. This file records the earlier
+MVP context. A five-phase progress summary is a reporting view only. Use the
+[coverage and roadmap audit](scope-audit.md) for current evidence and gaps.
+
+## Release mission scope update — 2026-11-13
+
+The owner's master completion mission expands the earlier MVP to tutoring, interviews, verified opportunity discovery, durable notifications/PWA, approved memory, controlled actions, and commercial release preparation. The older exclusions below describe the original MVP, not a prohibition on the expanded mission. Acceptance gates and actual feature status are tracked in [release-plan.md](release-plan.md). No provider costs or production changes are implicitly approved.
+
 ## Confirmed product vision
 
 Momentum AI is a multi-user personal AI growth and execution assistant for students, developers, and professionals. It combines projects, technical development, learning, academics, career goals/opportunities, tasks, priorities, and commitments so an assistant can recommend realistic next actions and help maintain progress.
