@@ -125,3 +125,8 @@ Notification usability checkpoint: API import plus valid/oversized batch validat
 - The staging Blueprint parsed and passed Render's published JSON Schema. Local checks verified a same-region private API reference, manual deployments, environment separation and the public liveness/private readiness route definitions. The frontend build passed using a synthetic Auth URL.
 - Focused backend health, auth and account checks passed 20 tests. The database-dependent export test was skipped in this local run and retains its earlier development integration evidence.
 - Docker Desktop's Linux engine was unavailable. Runtime container, DNS refresh and Render workspace validation remain deployment checks. No hosted environment or database objects were created.
+
+## Production initialization rehearsal
+
+- Local PostgreSQL 18.7 started with a fresh disposable database. Application role, 001–004, base grants, 005–008, scheduler group, corrected 009, original 010, 011–013, standalone 014, and runtime LOGIN all committed. Runtime RLS was active on all 20 private tables. Scoped grants, the `remotive` cache seed and unset-owner read checks passed.
+- Focused goals, conversation history, account export and chat-action suites passed 32 tests using synthetic fixtures. Neon-managed password reset and pooled authentication remain to be verified.

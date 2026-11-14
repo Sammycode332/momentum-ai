@@ -5,6 +5,9 @@ SET LOCAL search_path = pg_catalog, public;
 
 -- Confirm production and neondb in the Neon SQL Editor selectors before running.
 -- The database name alone cannot distinguish branches.
+-- Only PostgreSQL catalogs are queried. No application or Auth rows are read.
+-- Compare schema evidence with available migration history. Object presence
+-- alone does not establish that a particular migration script was executed.
 WITH inventory AS (
     SELECT c.oid, n.nspname AS schema_name, c.relname AS table_name,
            c.relrowsecurity AS rls_enabled, c.relforcerowsecurity AS rls_forced,
@@ -25,20 +28,6 @@ WITH inventory AS (
            has_schema_privilege(oid, 'public', 'CREATE') AS public_create
     FROM pg_roles
     WHERE rolname IN ('momentum_app', 'momentum_scheduler', 'momentum_scheduler_worker')
-), row_presence AS (
-    SELECT schema_name, table_name,
-           CASE
-               WHEN NOT has_table_privilege(oid, 'SELECT') THEN 'unknown: no select grant'
-               WHEN row_security_active(oid) THEN 'unknown: rows may be hidden by RLS'
-               ELSE ((xpath('/table/row/has_rows/text()', query_to_xml(
-                   format('SELECT EXISTS (SELECT 1 FROM %I.%I) AS has_rows', schema_name, table_name),
-                   false, false, ''
-               )))[1])::text
-           END AS has_rows
-    FROM inventory
-    WHERE (schema_name = 'public' AND table_name LIKE 'momentum\_%' ESCAPE '\'
-           AND table_name <> 'momentum_source_cache')
-       OR (schema_name = 'neon_auth' AND table_name IN ('user', 'session'))
 )
 SELECT jsonb_build_object(
     'database', current_database(),
@@ -51,8 +40,6 @@ SELECT jsonb_build_object(
         'owner', pg_get_userbyid(relowner), 'rls_enabled', rls_enabled,
         'rls_forced', rls_forced
     ) ORDER BY schema_name, table_name) FROM inventory),
-    'row_presence', (SELECT jsonb_agg(to_jsonb(row_presence) ORDER BY schema_name, table_name)
-                     FROM row_presence),
     'roles', (SELECT jsonb_agg(to_jsonb(roles) - 'oid' ORDER BY rolname) FROM roles),
     'memberships', (SELECT jsonb_agg(jsonb_build_object(
         'member', member.rolname, 'role', parent.rolname, 'admin_option', m.admin_option

@@ -138,3 +138,7 @@ Notification usability final checks: frontend production build and lint both pas
 
 - Prepared the opt-in Render staging Blueprint and a same-origin proxy that uses the private service's runtime address. Added the staging and submission runbook with cost options, gates, smoke tests and rollback steps. No services, staging data or credentials have been created.
 - The owner approved Step 1 preparation for a fresh Neon Free project. The exact Console settings are documented. Owner creation and confirmation of the new project and branch IDs are pending. SQL and Render remain separately gated.
+
+- The owner supplied the successful read-only production catalog result for `neondb`. Nine Auth tables exist, with no Momentum application tables or roles. The [production initialization proposal](production-initialization.md) records the clean 001–014 sequence and preflight, verification and recovery steps for approval. Production Auth service and hosting readiness remain unverified.
+
+- Local PostgreSQL 18.7 rehearsal committed all 14 migrations and the separate role and grant checkpoints. Runtime RLS on 20 private tables and 32 focused tests passed. Production initialization remains pending Neon recovery and restricted login verification.
