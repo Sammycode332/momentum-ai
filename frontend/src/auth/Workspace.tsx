@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Dashboard } from '../dashboard/Dashboard'
 import { Goals } from '../goals/Goals'
 import { RecordsPage } from '../records/RecordsPage'
@@ -31,6 +31,18 @@ export function Workspace({ email, name, onSignedOut }: WorkspaceProps) {
   const [page, setPage] = useState<Page>(() => new URLSearchParams(location.search).has('chat') ? 'assistant' : new URLSearchParams(location.search).get('view') === 'notifications' ? 'notifications' : 'home'); const [sidebarOpen, setSidebarOpen] = useState(false); const [menuOpen, setMenuOpen] = useState(false); const [isSigningOut, setIsSigningOut] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('momentum-theme') as 'light' | 'dark') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem('momentum-theme', theme) }, [theme])
+  const navigationTrigger = useRef<HTMLButtonElement>(null)
+  const navigationClose = useRef<HTMLButtonElement>(null)
+  const pageContent = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (sidebarOpen) navigationClose.current?.focus()
+  }, [sidebarOpen])
+
+  function closeNavigation() {
+    setSidebarOpen(false)
+    navigationTrigger.current?.focus()
+  }
+
   const [signOutError, setSignOutError] = useState('')
   async function signOut() {
     if (isSigningOut) return
@@ -54,8 +66,40 @@ export function Workspace({ email, name, onSignedOut }: WorkspaceProps) {
     setOpenCreate(create)
     setPage(next)
     setSidebarOpen(false)
+    setMenuOpen(false)
+    if (sidebarOpen) pageContent.current?.focus()
   }
   const current = nav.find((item) => item.id === page)?.label ?? 'Home'
-  return <div className="app-shell"><aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`} aria-label="Primary navigation"><div className="brand"><span className="brand-mark">M</span><span>Momentum</span><button className="mobile-close" aria-label="Close navigation" onClick={() => setSidebarOpen(false)}>×</button></div><nav>{nav.map((item) => <div key={item.id}>{item.group && <p className="nav-group">{item.group}</p>}<button aria-current={page === item.id ? 'page' : undefined} className={page === item.id ? 'nav-active' : ''} onClick={() => go(item.id)}><NavIcon name={item.id} />{item.label}</button></div>)}</nav><div className="sidebar-footer"><span className="status-dot" /> Your personal workspace</div></aside>{sidebarOpen && <button className="scrim" aria-label="Close navigation" onClick={() => setSidebarOpen(false)} />}
-    <main className="app-main"><header className="topbar"><button className="menu-button" aria-label="Open navigation" onClick={() => setSidebarOpen(true)}>☰</button><div><p className="eyebrow">Workspace</p><strong>{current}</strong></div><div className="topbar-actions"><button className="icon-button" aria-label="Toggle color theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀' : '◐'}</button><button className="sr-only" disabled={isSigningOut} onClick={() => void signOut()}>{isSigningOut ? 'Signing out…' : 'Sign out'}</button><div className="account"><button className="account-button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}><span>{email.slice(0, 1).toUpperCase()}</span><i>{email}</i></button>{menuOpen && <div className="account-menu"><button onClick={() => go('settings')}>Settings</button><button onClick={() => void signOut()} disabled={isSigningOut}>{isSigningOut ? 'Signing out…' : 'Sign out'}</button></div>}</div></div></header><div className={`page-content ${page === 'assistant' ? 'assistant-content' : ''}`}>{signOutError && <p role="alert" className="notice-error">{signOutError}</p>}{page === 'home' ? <Dashboard name={name} onNavigate={go} onCreate={domain => go(domain, true)} /> : page === 'goals' ? <Goals /> : page === 'settings' ? <Suspense fallback={<p role="status">Loading settings…</p>}><SettingsHub /></Suspense> : page === 'assistant' ? <Suspense fallback={<p role="status">Loading assistant…</p>}><AssistantHub /></Suspense> : page === 'notifications' ? <Suspense fallback={<p role="status">Loading notifications…</p>}><RemindersPage /></Suspense> : page === 'opportunities' ? <Suspense fallback={<p role="status">Loading opportunities…</p>}><OpportunitiesHub openCreate={openCreate} /></Suspense> : <RecordsPage key={page} domain={page} openCreate={openCreate} />}</div></main></div>
+  return <div className="app-shell">
+    <button className="skip-to-content" onClick={() => pageContent.current?.focus()}>Skip to content</button>
+    <aside id="workspace-sidebar" className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}
+      onKeyDown={event => { if (sidebarOpen && event.key === 'Escape') closeNavigation() }}
+      onBlur={event => {
+        if (sidebarOpen && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+          setSidebarOpen(false)
+        }
+      }}>
+      <div className="brand"><span className="brand-mark">M</span><span>Momentum</span><button ref={navigationClose} className="mobile-close" aria-label="Close navigation" onClick={closeNavigation}>×</button></div>
+      <nav aria-label="Primary navigation">{nav.map((item) => <div key={item.id}>{item.group && <p className="nav-group">{item.group}</p>}<button aria-current={page === item.id ? 'page' : undefined} className={page === item.id ? 'nav-active' : ''} onClick={() => go(item.id)}><NavIcon name={item.id} />{item.label}</button></div>)}</nav>
+      <div className="sidebar-footer"><span className="status-dot" /> Your personal workspace</div>
+    </aside>
+    {sidebarOpen && <div className="scrim" aria-hidden="true" onClick={closeNavigation} />}
+    <main className="app-main">
+      <header className="topbar">
+        <button ref={navigationTrigger} className="menu-button" aria-label="Open navigation" aria-controls="workspace-sidebar" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)}>☰</button>
+        <div><p className="eyebrow">Workspace</p><strong>{current}</strong></div>
+        <div className="topbar-actions">
+          <button className="icon-button" aria-label="Toggle color theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☀' : '◐'}</button>
+          <div className="account">
+            <button className="account-button" aria-label={`Account menu for ${email}`} onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}><span>{email.slice(0, 1).toUpperCase()}</span><i>{email}</i></button>
+            {menuOpen && <div className="account-menu"><button onClick={() => go('settings')}>Settings</button><button onClick={() => void signOut()} disabled={isSigningOut}>{isSigningOut ? 'Signing out…' : 'Sign out'}</button></div>}
+          </div>
+        </div>
+      </header>
+      <div ref={pageContent} tabIndex={-1} className={`page-content ${page === 'assistant' ? 'assistant-content' : ''}`}>
+        {signOutError && <p role="alert" className="notice-error">{signOutError}</p>}
+        {page === 'home' ? <Dashboard name={name} onNavigate={go} onCreate={domain => go(domain, true)} /> : page === 'goals' ? <Goals /> : page === 'settings' ? <Suspense fallback={<p role="status">Loading settings…</p>}><SettingsHub /></Suspense> : page === 'assistant' ? <Suspense fallback={<p role="status">Loading assistant…</p>}><AssistantHub /></Suspense> : page === 'notifications' ? <Suspense fallback={<p role="status">Loading notifications…</p>}><RemindersPage /></Suspense> : page === 'opportunities' ? <Suspense fallback={<p role="status">Loading opportunities…</p>}><OpportunitiesHub openCreate={openCreate} /></Suspense> : <RecordsPage key={page} domain={page} openCreate={openCreate} />}
+      </div>
+    </main>
+  </div>
 }

@@ -107,4 +107,34 @@ Notification usability final checks: frontend production build and lint both pas
 - Phase 8 task edits: saved chat can propose completion/status, priority, due-date, and title changes for a uniquely matched task. The approval card shows current and proposed values. The server guards against stale edits and reuses the normal task writer. Goal creation and multi-record plan approval are the next milestone.
 - Milestones A and B user-verified (2026-11-14): in a signed-in browser, the owner confirmed chat retrieved actual workspace records, proposed changes to existing tasks, and persisted approved updates.
 - Scheduling review: Tasks use a calendar date. Reminders already store a timestamp and IANA timezone and have a separate delivery lifecycle. Prefer an explicitly reviewed timed reminder for exact times. Consider a task due-time field only when timed deadlines need to appear as task data independent of notifications.
-- Milestone C: chat can draft and propose a goal or a bounded roadmap. One approval saves the goal and selected phases, with projects, milestone tasks, and subtasks linked through existing workspace relationships. The resulting record IDs are saved with the action. Goal and milestone progress queries reflect persisted task states. The backend, restricted PostgreSQL integration, frontend review, and synthetic Gemini checks passed. Signed-in browser acceptance for Milestone C is pending.
+- Milestone C user-verified: the owner confirmed standalone goal creation and persistence, roadmap review, and selective approval with records visible in Goals, Projects, and Tasks in a signed-in browser.
+- Phase 7: chat now drafts timed reminders for approval through the existing reminder service. The review shows date, time and timezone. The existing scheduler writes one durable inbox entry per occurrence. Notification history distinguishes inbox creation, pending push, push-service acceptance and failed or skipped attempts. Live closed-tab device delivery requires activating the scheduler and push credentials.
+- The owner confirmed that **Send push test** produced an actual Windows desktop notification. The authenticated API sends to the current registered device and reports push-service acceptance. The inbox marker is excluded from scheduled dispatch. This verifies direct device delivery.
+- The final Phase 7 test remains blocked at scheduler authentication. No local worker process or scheduled task matched the worker entry point. The final read-only check with the refreshed development worker URI still received an authentication rejection. The three-minute reminder, closed-tab delivery, restart recovery, and final history checks remain pending. The owner chose to proceed to Phase 9 hardening and release preparation with this verification gap recorded.
+
+## Phase 9 — Session recovery and API readiness
+
+- Protected reads now make one same-account token refresh attempt on recognized access-token rejections. The verifier rejects unusable claims before contacting Neon and still requires a valid signature for access. The original first-load incident needs a synthetic signed-in browser retest.
+- `/health/ready` checks development runtime database connectivity and active RLS on the Goals table. The live readiness check returned 200 and the separate read-only runtime audit found all 20 expected tables with active RLS. The runtime role lacked superuser and BYPASSRLS privileges.
+- The release audit separates owner-verified workflows from browser and staging gaps. Scheduler authentication remains a release blocker and was left paused.
+
+## Phase 6 — Public opportunity browsing verified
+
+- The owner confirmed that signed-out visitors can browse opportunities, see listings, and open the external opportunity or application page. This closes the public browsing and outbound navigation checks. Source freshness and outage handling remain separate release checks.
+
+## Phase 9 — Recovery privacy and keyboard navigation
+
+- The frontend document and bundled proxy apply `strict-origin` to omit recovery URL paths and query strings from request referrers, including initial same-origin assets. Hosted ingress query-string redaction still needs staging verification.
+- The workspace now has a single main landmark, a skip-to-content control, and mobile drawer focus handling. The closed drawer is hidden at mobile widths. The visible account menu is the keyboard-accessible sign-out entry point.
+
+- Owner browser verification passed for fresh sign-in, a cold reload of Overview, and sign-out. Recovery-email delivery and hosted-provider configuration remain separate checks.
+
+## Phase 9 — Auth dependency triage and export isolation
+
+- Updated the locked browser Zod dependency from 4.5.4 to 4.6.7. The full and production npm scans now report nine affected package entries linked to four advisories. The app's browser bundle lacks the affected Better Auth server handlers. Before launch verify Neon-managed patch status or non-applicability for both account-takeover advisories. See [security review](security-review.md) for exact chains, severity and supporting evidence.
+- Added a rollback-only two-user development PostgreSQL integration test for account export. Each signed synthetic identity received only its own goals and memories.
+
+## Phase 9 — Hosted synthetic demo preparation
+
+- Prepared the opt-in Render staging Blueprint and a same-origin proxy that uses the private service's runtime address. Added the staging and submission runbook with cost options, gates, smoke tests and rollback steps. No services, staging data or credentials have been created.
+- The owner approved Step 1 preparation for a fresh Neon Free project. The exact Console settings are documented. Owner creation and confirmation of the new project and branch IDs are pending. SQL and Render remain separately gated.

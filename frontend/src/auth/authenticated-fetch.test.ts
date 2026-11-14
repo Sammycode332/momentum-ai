@@ -78,6 +78,44 @@ it('surfaces an API 401 without refreshing or replaying the request', async () =
   expect(fetchMock).toHaveBeenCalledTimes(1)
 })
 
+it('shares one forced refresh across rejected reads and retries them once', async () => {
+  const initial = fixtureJwt()
+  const fresh = fixtureJwt(Math.floor(Date.now() / 1000) + 600)
+  let finish!: (value: ReturnType<typeof session>) => void
+  getSession.mockResolvedValueOnce(session(initial))
+    .mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  const fetchMock = vi.fn((path: string, options: RequestInit) => {
+    if (path.endsWith('/tasks') && new Headers(options.headers).get('Authorization') === `Bearer ${fresh}`) {
+      return Promise.resolve(Response.json([]))
+    }
+    return Promise.resolve(Response.json({ error: { code: 'INVALID_ACCESS_TOKEN' } }, { status: 401 }))
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  const requests = ['/api/v1/tasks', '/api/v1/projects'].map(path => authenticatedFetch(path))
+  await vi.waitFor(() => expect(getSession).toHaveBeenCalledTimes(2))
+  expect(fetchMock).toHaveBeenCalledTimes(2)
+  finish(session(fresh))
+  const responses = await Promise.all(requests)
+  expect(responses.map(response => response.status)).toEqual([200, 401])
+  expect(fetchMock).toHaveBeenCalledTimes(4)
+  for (const [, options] of fetchMock.mock.calls.slice(2)) {
+    expect(new Headers(options.headers).get('Authorization')).toBe(`Bearer ${fresh}`)
+  }
+})
+
+it.each(['same token', 'different account', 'unrelated error'])('returns the original read rejection for %s', async scenario => {
+  const initial = fixtureJwt()
+  const fresh = scenario === 'different account' ? fixtureJwt(undefined, 'other-user') : initial
+  getSession.mockResolvedValueOnce(session(initial)).mockResolvedValueOnce(session(fresh))
+  const code = scenario === 'unrelated error' ? 'UNAUTHORIZED' : 'INVALID_ACCESS_TOKEN'
+  const rejected = Response.json({ error: { code } }, { status: 401 })
+  const fetchMock = vi.fn().mockResolvedValue(rejected)
+  vi.stubGlobal('fetch', fetchMock)
+  expect(await authenticatedFetch('/api/v1/tasks')).toBe(rejected)
+  expect(getSession).toHaveBeenCalledTimes(scenario === 'unrelated error' ? 1 : 2)
+  expect(fetchMock).toHaveBeenCalledTimes(1)
+})
+
 it('keeps a server diagnostic reference on a failed request', async () => {
   const requestId = '9a'.repeat(16)
   const response = Response.json({ error: { message: 'Unexpected failure.' } }, {

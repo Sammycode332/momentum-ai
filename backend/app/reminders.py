@@ -27,12 +27,22 @@ class ReminderInput(BaseModel):
     repeat: Literal['none','daily']='none'
     _zone=field_validator('timezone')(valid_zone)
 
-    @field_validator('due_at')
-    @classmethod
-    def future(cls,value):
-        if value <= datetime.now(UTC) or value > datetime.now(UTC)+timedelta(days=3650):
-            raise ValueError('Choose a future date within ten years.')
-        return value
+
+def validate_reminder_schedule(due_at):
+    now = datetime.now(UTC)
+    if not now < due_at <= now + timedelta(days=3650):
+        raise ApiError(422, 'INVALID_REMINDER_TIME', 'Choose a future date within ten years.')
+
+
+def insert_reminder(cursor, owner, reminder_id, body):
+    validate_reminder_schedule(body.due_at)
+    cursor.execute('INSERT INTO momentum_reminders(id,owner_id,title,due_at,timezone,repeat) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT(id) DO NOTHING',
+                   (reminder_id, owner, body.title, body.due_at, body.timezone, body.repeat))
+    row = require_row(cursor.execute(f'SELECT {FIELDS} FROM momentum_reminders WHERE id=%s AND owner_id=%s',
+                                     (reminder_id, owner)).fetchone())
+    if any(row[key] != getattr(body, key) for key in ('title', 'due_at', 'timezone', 'repeat')):
+        raise ApiError(409, 'REQUEST_CONFLICT', 'This reminder ID was already used.')
+    return row
 
 
 class ReminderCreate(ReminderInput):
@@ -66,12 +76,7 @@ def reminders(principal: Principal):
 @router.post('',status_code=201)
 def create(body: ReminderCreate,principal: Principal):
     with private_cursor(principal.subject,*TABLES) as c:
-        c.execute('INSERT INTO momentum_reminders(id,owner_id,title,due_at,timezone,repeat) VALUES (%s,%s,%s,%s,%s,%s) ON CONFLICT(id) DO NOTHING',
-                  (body.id,principal.subject,body.title,body.due_at,body.timezone,body.repeat))
-        row=require_row(c.execute(f'SELECT {FIELDS} FROM momentum_reminders WHERE id=%s AND owner_id=%s',(body.id,principal.subject)).fetchone())
-        if any(row[k]!=getattr(body,k) for k in ('title','due_at','timezone','repeat')):
-            raise ApiError(409,'REQUEST_CONFLICT','This reminder ID was already used.')
-        return row
+        return insert_reminder(c, principal.subject, body.id, body)
 
 
 @router.get('/preferences')
@@ -94,16 +99,29 @@ def save_preferences(body: NotificationPreferences,principal: Principal):
 
 @router.get('/notifications')
 def notifications(principal: Principal):
-    with private_cursor(principal.subject,*TABLES) as c:
-        return c.execute('SELECT id,title,created_at,state,snoozed FROM momentum_notifications WHERE owner_id=%s ORDER BY created_at DESC,id LIMIT 100',(principal.subject,)).fetchall()
+    with private_cursor(principal.subject,*TABLES,'momentum_push_deliveries') as c:
+        return c.execute('''SELECT n.id,n.title,n.created_at,n.state,n.snoozed,
+            (SELECT jsonb_object_agg(status,total) FROM (
+                SELECT d.status,count(*) AS total FROM momentum_push_deliveries d
+                WHERE d.owner_id=n.owner_id AND d.notification_id=n.id GROUP BY d.status
+            ) AS counts) AS push
+            FROM momentum_notifications n WHERE n.owner_id=%s ORDER BY n.created_at DESC,n.id LIMIT 100''',
+            (principal.subject,)).fetchall()
 
 
 @router.post('/test',status_code=201)
 def test_notification(principal: Principal):
     with private_cursor(principal.subject,*TABLES) as c:
-        reminder_id=uuid4()
-        c.execute("INSERT INTO momentum_reminders(id,owner_id,title,due_at,timezone,repeat,status) VALUES (%s,%s,'Test notification',now(),'UTC','none','delivered')",(reminder_id,principal.subject))
-        return c.execute("INSERT INTO momentum_notifications(id,owner_id,reminder_id,occurrence,title) VALUES (%s,%s,%s,0,'Your in-app notifications are working.') RETURNING id",(uuid4(),principal.subject,reminder_id)).fetchone()
+        return insert_test_notification(c, principal.subject, 'In-app test notification')
+
+
+def insert_test_notification(cursor, owner, title):
+    reminder_id = uuid4()
+    # Tests use an inbox marker excluded from scheduled dispatch.
+    cursor.execute("""INSERT INTO momentum_reminders(id,owner_id,title,due_at,timezone,repeat,status)
+        VALUES (%s,%s,%s,now(),'UTC','none','cancelled')""", (reminder_id, owner, title))
+    return cursor.execute("""INSERT INTO momentum_notifications(id,owner_id,reminder_id,occurrence,title)
+        VALUES (%s,%s,%s,0,%s) RETURNING id""", (uuid4(), owner, reminder_id, title)).fetchone()
 
 
 @router.patch('/notifications')
@@ -134,9 +152,19 @@ def snooze(notification_id: UUID,principal: Principal):
 
 @router.put('/{reminder_id}')
 def reschedule(reminder_id: UUID,body: ReminderInput,principal: Principal):
+    validate_reminder_schedule(body.due_at)
     with private_cursor(principal.subject,*TABLES) as c:
-        return require_row(c.execute(f"UPDATE momentum_reminders SET title=%s,due_at=%s,timezone=%s,repeat=%s,status='scheduled',next_check=now(),occurrence=occurrence+1 WHERE id=%s AND owner_id=%s RETURNING {FIELDS}",
-            (body.title,body.due_at,body.timezone,body.repeat,reminder_id,principal.subject)).fetchone())
+        # For daily reminders the worker treats occurrence - 1 as the last
+        # dispatch. Leave that sequence unused when converting a one-off.
+        saved = c.execute(f"""UPDATE momentum_reminders SET title=%s,due_at=%s,timezone=%s,repeat=%s,
+            status='scheduled',next_check=now(),occurrence=occurrence+CASE WHEN repeat='none' AND %s='daily' THEN 2 ELSE 1 END
+            WHERE id=%s AND owner_id=%s
+            AND (status<>'scheduled' OR (title,due_at,timezone,repeat) IS DISTINCT FROM (%s,%s,%s,%s))
+            RETURNING {FIELDS}""",
+            (body.title,body.due_at,body.timezone,body.repeat,body.repeat,reminder_id,principal.subject,
+             body.title,body.due_at,body.timezone,body.repeat)).fetchone()
+        return saved or require_row(c.execute(f'SELECT {FIELDS} FROM momentum_reminders WHERE id=%s AND owner_id=%s',
+            (reminder_id,principal.subject)).fetchone())
 
 
 @router.post('/{reminder_id}/cancel')

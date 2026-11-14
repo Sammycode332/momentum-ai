@@ -21,6 +21,7 @@ from app.practice import router as practice_router
 from app.reminders import router as reminders_router
 from app.actions import router as actions_router
 from app.discovery import router as discovery_router
+from app.database import DatabaseConfigurationError, DatabaseError, database_connection
 from app.limits import require_ai_budget, BodyLimitMiddleware
 from app.push import router as push_router
 from app.account import router as account_router
@@ -47,6 +48,22 @@ app.include_router(records_router)
 @app.get('/health/live', include_in_schema=False)
 def liveness():
     return {'status': 'ok'}
+
+
+@app.get('/health/ready', include_in_schema=False)
+def readiness():
+    try:
+        with database_connection() as connection:
+            ready = connection.execute(
+                "SELECT row_security_active('public.momentum_goals'::regclass)"
+            ).fetchone() == (True,)
+    except (DatabaseConfigurationError, DatabaseError):
+        ready = False
+    return JSONResponse(
+        {"status": "ready" if ready else "unavailable"},
+        status_code=200 if ready else 503,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.middleware("http")

@@ -4,7 +4,7 @@ self.addEventListener('push', event => {
   try { tag = event.data?.json().tag || tag } catch { /* Generic notification on malformed payload. */ }
   event.waitUntil(self.registration.showNotification('Momentum AI', {
     body: 'You have a reminder. Open your workspace to view it.',
-    tag, icon: '/icon.svg', data: { url: '/?view=notifications' },
+    tag, renotify: false, icon: '/icon.svg', data: { url: '/?view=notifications' },
   }))
 })
 self.addEventListener('notificationclick', event => {

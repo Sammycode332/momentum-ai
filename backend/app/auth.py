@@ -61,13 +61,26 @@ class AuthenticatedPrincipal:
 class NeonAccessTokenVerifier:
     def __init__(self, settings: NeonAuthSettings, jwk_client: Any | None = None) -> None:
         self._issuer = settings.issuer
-        self._jwk_client = jwk_client or PyJWKClient(settings.jwks_url)
+        self._jwk_client = jwk_client or PyJWKClient(settings.jwks_url, timeout=5)
 
     def verify(self, token: str) -> AuthenticatedPrincipal:
         try:
             header = jwt.get_unverified_header(token)
             if header.get("alg") != "EdDSA":
                 raise jwt.InvalidAlgorithmError("Unsupported signing algorithm.")
+            if not isinstance(header.get("kid"), str) or not header["kid"]:
+                raise jwt.InvalidTokenError("Missing signing key ID.")
+
+            # Reject unusable claims before making a provider request. Only the
+            # signature-verified decode below can establish the caller's identity.
+            claims_options = {"require": ["exp", "iss", "sub"], "verify_aud": False}
+            candidate = jwt.decode(token, issuer=self._issuer, options={
+                **claims_options, "verify_signature": False, "verify_iss": True,
+                "verify_exp": True, "verify_iat": True, "verify_nbf": True,
+            })
+            subject = candidate.get("sub")
+            if not isinstance(subject, str) or not subject or "\0" in subject:
+                raise jwt.InvalidSubjectError("Invalid subject.")
 
             signing_key = self._jwk_client.get_signing_key_from_jwt(token)
             claims = jwt.decode(
@@ -75,7 +88,7 @@ class NeonAccessTokenVerifier:
                 signing_key.key,
                 algorithms=["EdDSA"],
                 issuer=self._issuer,
-                options={"require": ["exp", "iss", "sub"], "verify_aud": False},
+                options=claims_options,
             )
         except ExpiredSignatureError:
             raise ExpiredAccessTokenError from None
@@ -84,13 +97,10 @@ class NeonAccessTokenVerifier:
         except PyJWKClientConnectionError:
             logger.warning("Neon Auth signing keys could not be reached")
             raise ApiError(503, "AUTH_KEYS_UNAVAILABLE", "Session verification is temporarily unavailable. Try again.") from None
-        except (PyJWTError, ValueError, KeyError) as error:
+        except (PyJWTError, ValueError, TypeError, OverflowError, KeyError) as error:
             raise InvalidAccessTokenError from error
 
-        subject = claims.get("sub")
-        if not isinstance(subject, str) or not subject:
-            raise InvalidAccessTokenError
-        return AuthenticatedPrincipal(subject=subject)
+        return AuthenticatedPrincipal(subject=claims["sub"])
 
 
 class InvalidAccessTokenError(Exception):

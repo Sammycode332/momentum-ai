@@ -10,18 +10,18 @@ function App() {
   const email = data?.user?.email
 
   return (
-    <main className="min-h-screen">
+    <div className="min-h-screen">
       {isPending ? (
-        <p role="status" className="auth-loading">Restoring your session…</p>
+        <main><p role="status" className="auth-loading">Restoring your session…</p></main>
       ) : recovering ? (
-        <PasswordRecovery onBack={() => setRecovering(false)} />
+        <main><PasswordRecovery onBack={() => setRecovering(false)} /></main>
       ) : email ? (
         <Workspace key={data?.user?.id ?? email} email={email}
           name={data?.user?.name === email ? undefined : data?.user?.name?.trim()} onSignedOut={refetch} />
       ) : (
-        <Welcome onAuthenticated={refetch} sessionError={Boolean(error)} />
+        <main><Welcome onAuthenticated={refetch} sessionError={Boolean(error)} /></main>
       )}
-    </main>
+    </div>
   )
 }
 

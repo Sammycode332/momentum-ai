@@ -8,7 +8,7 @@ from app.private_store import Principal, private_cursor, require_row, audit
 from app.planning_provider import get_planning_provider
 from app.api_errors import ApiError
 from app.records import OpportunityInput, TaskInput, insert_task
-from app.reminders import ReminderInput
+from app.reminders import ReminderInput, insert_reminder, validate_reminder_schedule
 from app.task_edits import TaskEdit, apply_task_edit, edit_baseline, task_edit_snapshot
 from app.goal_plans import GoalDetails, PLAN_TABLES, PlanReceipt, Roadmap, save_goal_plan
 from app.database import DatabaseError
@@ -67,6 +67,8 @@ class Suggest(BaseModel):
 
 
 def save_proposal(c,owner,proposal,*,proposal_id=None):
+    if proposal.kind == 'create_reminder':
+        validate_reminder_schedule(proposal.reminder.due_at)
     if proposal.receipt is not None:
         raise ApiError(422, 'INVALID_ACTION', 'Execution results are set by the server.')
     if proposal.kind=='reschedule_task':
@@ -128,8 +130,7 @@ def execute(c,owner,p):
     elif p.kind=='save_opportunity':
         c.execute("INSERT INTO momentum_opportunities(id,owner_id,name,type,status,url,application_deadline) VALUES (%s,%s,%s,'saved','not_started',%s,%s)",(target,owner,p.title,p.url,p.due_date))
     elif p.kind=='create_reminder':
-        r=p.reminder
-        c.execute('INSERT INTO momentum_reminders(id,owner_id,title,due_at,timezone,repeat) VALUES (%s,%s,%s,%s,%s,%s)',(target,owner,r.title,r.due_at,r.timezone,r.repeat))
+        insert_reminder(c, owner, target, p.reminder)
     return target
 
 

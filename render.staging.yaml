@@ -1,0 +1,40 @@
+# Import manually after approving the staging services and their cost.
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+services:
+  - type: pserv
+    name: momentum-staging-api
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    autoDeployTrigger: 'off'
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NEON_AUTH_BASE_URL
+        sync: false
+      - key: NEON_AUTH_JWKS_URL
+        sync: false
+
+  - type: web
+    name: momentum-staging-web
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    autoDeployTrigger: 'off'
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    healthCheckPath: /health/live
+    envVars:
+      - key: PORT
+        value: '8080'
+      - key: MOMENTUM_API_UPSTREAM
+        fromService:
+          type: pserv
+          name: momentum-staging-api
+          property: hostport
+      - key: VITE_NEON_AUTH_URL
+        sync: false
+      - key: VITE_GOOGLE_SIGN_IN_ENABLED
+        value: 'false'

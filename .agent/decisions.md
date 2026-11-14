@@ -7,6 +7,7 @@
 - Tutoring and interview sessions persist structured curriculum/questions, user answers and bounded AI feedback. A lesson is not mastered by viewing it. Rubric scores are formative model judgments, not hiring predictions. A submitted answer is evaluated once per step via an idempotent request ID and row lock.
 - AI actions are typed proposals; execution requires an explicit authenticated approve request, a pending row lock, normal ownership checks and one transaction with audit. No automatic execution or SQL tools.
 - Durable reminders use PostgreSQL scheduling state and a separate worker process, with a separate least-privilege scheduler role. No browser timer is the delivery mechanism. External push requires configured VAPID keys and supported devices; no paid service is selected.
+- Chat reminder drafts resolve a local date and time before approval. Reject nonexistent and ambiguous local times and keep the explicit IANA zone. Display inbox creation separately from push-service acceptance. Keep notification IDs stable across push retries.
 - Live discovery will use authorized sources only and expose source limitations. Unsupported categories must show no-provider information, not generated listings. Provider credentials/costs, production rollout and schema-owner activation remain external gates.
 
 ## ADR-024 — Goal lifecycle (2026-11-13)
@@ -189,7 +190,7 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 
 ## Protected request token freshness
 
-- Reuse the Neon session adapter. If its cached token is opaque, expired, or within 15 seconds of expiry, coalesce one uncached Neon session fetch before dispatching private requests. This margin covers request transit and clock skew. FastAPI remains responsible for signature and claim verification. API responses are never replayed automatically.
+- Reuse the Neon session adapter. If its cached token is opaque, expired, or within 15 seconds of expiry, coalesce one uncached Neon session fetch before dispatching private requests. This margin covers request transit and clock skew. FastAPI remains responsible for signature and claim verification. See ADR-032 for read recovery after a JWT-related 401.
 
 ## ADR-021 — Assistant Markdown and streaming boundary
 
@@ -215,7 +216,7 @@ Use a new dated ADR for every material architecture choice. Do not change an ADR
 
 Authenticated users can export allowlisted workspace sections in stable, bounded pages. Never export push subscription endpoints/keys, provider secrets, bearer tokens or another owner. Every query requires active RLS and an explicit verified-owner predicate. A multi-page export is not a transactionally frozen snapshot; the download records this limitation. Do not label workspace clearing as Neon identity deletion. Full account erasure remains gated on provider identity deletion and an agreed audit/backup retention procedure.
 
-Prepare container/CI templates and a same-origin reverse proxy without choosing a paid host or deploying. Production TLS terminates at the chosen hosting ingress; backend stays private. A separate supervised scheduler runs the worker. Public liveness reports process health only; authenticated readiness checks are operational, not proof of full release readiness.
+Prepare container/CI templates and a same-origin reverse proxy without choosing a paid host or deploying. Production TLS terminates at the chosen hosting ingress; backend stays private. A separate supervised scheduler runs the worker. Public liveness reports process availability. Use the private API readiness probe described in ADR-032.
 
 ## ADR-028 — Provider-managed account recovery
 
@@ -232,3 +233,23 @@ Reuse daily reminders for optional morning/evening check-ins. Shortcut buttons p
 ## ADR-031 — Safe reversal of approved deadline changes
 
 Only reschedule_task actions support automatic undo. Approval writes task updated_at and action applied_at using PostgreSQL transaction time; undo requires both the applied deadline and that timestamp to match. Any later task update prevents undo. Restore only the previous deadline, never delete AI-created records. Lock the owned proposal and target, and record reverted state/audit in the same transaction. Retry of an already reverted action is a no-op. Reschedule proposal titles come from the owned database task rather than AI-supplied text. Migration 014 extends action state/history; no remote application assumed.
+
+## ADR-032 — Bounded session recovery and private readiness
+
+Share an uncached token refresh after a recognized JWT-related 401 on a protected GET. Retry at most once, with a different token for the same subject. Mutations retain their existing error handling. Reject unusable claims before requesting signing keys. All accepted requests require signature verification.
+
+Keep process liveness and database readiness separate. The private API readiness probe uses the runtime connection and checks active RLS on the Goals table. Its response omits role and database details. Use the separate catalog audit to check the broader schema.
+
+## ADR-033 — Recovery referrers and workspace navigation
+
+Apply `strict-origin` to the frontend document and bundled proxy. Retain the application origin as a referrer on secure requests while excluding recovery query values from same-origin asset requests before React starts. The reset component still removes the token from the address bar. In production, hosting ingress logs must omit query strings.
+
+Hide the closed mobile sidebar from keyboard navigation and assistive technology. Give the signed-in workspace a single main landmark and an early skip link to page content. Keep existing navigation destinations and public browsing entry points.
+
+## ADR-034 — Neon Auth dependency remediation
+
+Use a targeted Zod override to cover the vulnerable parser included in the browser bundle, pending a Neon SDK release with an updated pin. Keep the coupled Better Auth packages at the provider-supported versions while the browser bundle only uses their client code. Track the managed service's server-side plugin configuration and patch status as a separate release gate.
+
+## ADR-035 — Proposed synthetic staging on Render and Neon
+
+Prepare an opt-in Render Blueprint for a public HTTPS Nginx service and a private FastAPI service in the same region. Keep relative API URLs and existing CORS behavior. Bind the proxy to Render's internal API address at startup and refresh DNS across backend redeploys. Keep managed Auth, staging data and credentials isolated in a fresh Neon project/branch. The Blueprint omits worker provisioning and migration hooks. The existing one-shot worker fits a separately approved Render Cron Job after the documented blocker clears.

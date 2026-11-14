@@ -6,7 +6,7 @@ export function PushSettings() {
   async function enable() {
     setBusy(true); setError(''); setMessage('')
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext) throw new Error('This device needs a compatible browser and HTTPS for push notifications.')
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || !window.isSecureContext) throw new Error('This device needs a compatible browser and HTTPS for push notifications.')
       // Request directly from the click handler, before network work (required by Safari).
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') throw new Error('Notifications were not permitted. You can change this in browser settings.')
@@ -21,5 +21,19 @@ export function PushSettings() {
       setMessage('Push enabled on this device. Send a test notification to check delivery.')
     } catch (e) { setError(errorText(e)) } finally { setBusy(false) }
   }
-  return <section className="feature-card"><h2>Device notifications</h2><p>On supported iPhones and iPads, add Momentum to your Home Screen and open it there first. Push delivery can be delayed or unavailable. Notifications show generic text to protect your privacy.</p><div className="feature-actions"><button disabled={busy} onClick={() => void enable()}>Enable on this device</button><button disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await disablePush(); setMessage('Push disabled on this device.') } catch (e) { setError(errorText(e)) } finally { setBusy(false) } }}>Disable on this device</button><button disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await api('reminders/test', 'POST'); setMessage('Test queued. Delivery requires the worker and is subject to quiet hours.') } catch (e) { setError(errorText(e)) } finally { setBusy(false) } }}>Send push test</button></div>{message && <p role="status">{message}</p>}{error && <p role="alert" className="notice-error">{error}</p>}</section>
+  async function testDevice() {
+    setBusy(true); setError(''); setMessage('')
+    try {
+      if (!('serviceWorker' in navigator) || !('Notification' in window) || Notification.permission !== 'granted') {
+        throw new Error('Enable notifications on this device before sending a test.')
+      }
+      const registration = await navigator.serviceWorker.getRegistration('/')
+      const subscription = await registration?.pushManager.getSubscription()
+      if (!subscription) throw new Error('Enable notifications on this device before sending a test.')
+      const result = await api<{ accepted: boolean }>('push/test', 'POST', { endpoint: subscription.endpoint })
+      if (!result.accepted) throw new Error('The push service did not confirm acceptance.')
+      setMessage('Push service accepted the test. Check your device for the notification.')
+    } catch (e) { setError(errorText(e)) } finally { setBusy(false) }
+  }
+  return <section className="feature-card"><h2>Device notifications</h2><p>On supported iPhones and iPads, add Momentum to your Home Screen and open it there first. Push delivery can be delayed or unavailable. Notifications show generic text to protect your privacy.</p><div className="feature-actions"><button disabled={busy} onClick={() => void enable()}>Enable on this device</button><button disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await disablePush(); setMessage('Push disabled on this device.') } catch (e) { setError(errorText(e)) } finally { setBusy(false) } }}>Disable on this device</button><button disabled={busy} onClick={() => void testDevice()}>Send push test</button></div>{message && <p role="status">{message}</p>}{error && <p role="alert" className="notice-error">{error}</p>}</section>
 }

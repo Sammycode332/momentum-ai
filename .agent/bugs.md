@@ -2,7 +2,7 @@
 
 | ID | Evidence / reproduction | Status and next check |
 | --- | --- | --- |
-| BUG-001 | Owner reports initial Overview access-token rejection, then success after retries. Installed Neon adapter injects `set-auth-jwt` into session token and supports uncached `X-Force-Fetch`. Frontend already coalesces acquisition and refreshes stale/opaque JWTs. | Open: capture failing status/request reference and verifier reason; no confirmed live root cause. Do not add delays or weaken verification. |
+| BUG-001 | Owner reported initial Overview access-token rejection, then success after retries. Installed Neon adapter injects `set-auth-jwt` into the session token and supports uncached `X-Force-Fetch`. | Phase 9 bounded retry passed automated checks. The owner verified fresh sign-in, Overview cold reload, and sign-out. The exact cause of the original intermittent rejection was never captured. |
 | BUG-002 | `Workspace.signOut` ignored returned errors and did not catch thrown errors; failure provided no feedback. | Fixed, automated regression verified for both SDK failures and retry. Browser sign-out verification pending. |
 | BUG-003 | Initial `getSession()` rejection escaped safe error mapping. | Fixed, rejection/redaction/recovery test passed; no API replay. |
 | BUG-004 | Core record descriptions had no length bound; NUL text reached PostgreSQL. | Fixed at API boundary; POST/PUT regressions across domains passed. Existing records unchanged. |

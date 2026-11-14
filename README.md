@@ -47,6 +47,8 @@ Export downloads are private JSON files. Full Neon account deletion is unfinishe
 Push requires additional configuration and a running worker. See the
 [deployment and operations guide](.agent/deployment.md).
 
+For a hosted demo with synthetic data, see the [staging and submission plan](.agent/staging.md).
+
 ## Checks
 
 ```powershell

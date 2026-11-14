@@ -23,6 +23,7 @@ export function ChatTaskProposal({ action, onChange }: {
   const [error, setError] = useState('')
   const { proposal, status, result_id: recordId } = action
   const editing = proposal.kind === 'update_task'
+  const reminder = proposal.reminder
   const goal = proposal.roadmap?.goal ?? proposal.goal
   const receipt = proposal.receipt
   const [selected, setSelected] = useState(() => proposal.roadmap?.stages.map((_, index) => index) ?? [])
@@ -52,24 +53,28 @@ export function ChatTaskProposal({ action, onChange }: {
     }
   }
 
-  return <section className="feature-card chat-task-proposal" aria-label={proposal.roadmap ? 'Roadmap proposal' : goal ? 'Goal proposal' : 'Task proposal'}>
+  return <section className="feature-card chat-task-proposal" aria-label={reminder ? 'Reminder proposal' : proposal.roadmap ? 'Roadmap proposal' : goal ? 'Goal proposal' : 'Task proposal'}>
     <h4>{proposal.title}</h4>
-    {goal ? <GoalProposalDetails goal={goal} roadmap={proposal.roadmap} selected={selected} disabled={working}
+    {reminder ? <p>{new Date(reminder.due_at).toLocaleString(undefined, {
+      timeZone: reminder.timezone, dateStyle: 'long', timeStyle: 'short',
+    })} ({reminder.timezone}) · {reminder.repeat === 'daily' ? 'Every day' : 'Once'}</p> :
+      goal ? <GoalProposalDetails goal={goal} roadmap={proposal.roadmap} selected={selected} disabled={working}
       toggle={status === 'pending' ? index => setSelected(current => current.includes(index)
         ? current.filter(value => value !== index) : [...current, index]) : undefined} /> :
       editing && proposal.edit ? <TaskEditDetails edit={proposal.edit} /> :
       <p>{proposal.priority} priority · {proposal.due_date ? `Due ${proposal.due_date}` : 'No due date'}</p>}
     {status === 'pending' && <>
-      <p>Pending approval.{!editing && !goal && ' Tasks save a date only. Any requested time will be omitted.'}</p>
+      <p>Pending approval.{reminder ? ' Notification preferences and quiet hours apply.' :
+        !editing && !goal && ' Tasks save a date only. Any requested time will be omitted.'}</p>
       <div className="feature-actions">
         <button className="button-primary" disabled={working || (editing && !proposal.edit)}
-          onClick={() => void decide('approve')}>{goal ? (proposal.roadmap && selected.length
+          onClick={() => void decide('approve')}>{reminder ? 'Approve and schedule reminder' : goal ? (proposal.roadmap && selected.length
             ? 'Save goal and selected phases' : 'Approve and create goal')
             : editing ? 'Approve task update' : 'Approve and create task'}</button>
         <button className="button-secondary" disabled={working} onClick={() => void decide('reject')}>Reject proposal</button>
       </div>
     </>}
-    {status === 'applied' && recordId && (goal ? <div role="status">
+    {status === 'applied' && recordId && (reminder ? <p role="status">Reminder scheduled. Manage it in Reminders &amp; notifications.</p> : goal ? <div role="status">
       <p>Goal saved. Find it in Goals.</p>
       {receipt?.project_ids.length ? <p>Saved {count(receipt.project_ids, 'project')}, {count(receipt.milestone_ids, 'milestone')} and {count(receipt.task_ids, 'task')}. Find them in Projects and Tasks.</p> : null}
       {receipt && <details><summary>Saved record IDs</summary><ul>

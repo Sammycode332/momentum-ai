@@ -86,6 +86,7 @@ describe('App', () => {
     else authMocks.signOut.mockRejectedValueOnce(new Error('private details'))
     authMocks.signOut.mockResolvedValueOnce({ error: null })
     render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu for person@example.test' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not sign out. Please try again.')
     expect(screen.queryByText('private details')).not.toBeInTheDocument()
@@ -132,6 +133,28 @@ describe('App', () => {
       screen.getByRole('heading', { name: 'Welcome to Momentum' }),
     ).toBeInTheDocument()
     expect(screen.getByText('person@example.test')).toBeInTheDocument()
+  })
+
+  it('supports skipping to content and restoring keyboard focus when closing navigation', () => {
+    authMocks.useSession.mockReturnValue({
+      data: { user: { email: 'person@example.test' } },
+      isPending: false, refetch: authMocks.refetch,
+    })
+    render(<App />)
+    const main = screen.getByRole('main')
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to content' }))
+    expect(main).toContainElement(document.activeElement as HTMLElement)
+    expect(document.activeElement).toHaveAttribute('tabindex', '-1')
+
+    const trigger = screen.getByRole('button', { name: 'Open navigation' })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(trigger)
+    const close = screen.getByRole('button', { name: 'Close navigation' })
+    expect(close).toHaveFocus()
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.keyDown(close, { key: 'Escape' })
+    expect(trigger).toHaveFocus()
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 
   it.each([
@@ -468,6 +491,7 @@ describe('App', () => {
     authMocks.signOut.mockResolvedValue({ data: {}, error: null })
     render(<App />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Account menu for person@example.test' }))
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
 
     await waitFor(() => expect(authMocks.signOut).toHaveBeenCalledOnce())

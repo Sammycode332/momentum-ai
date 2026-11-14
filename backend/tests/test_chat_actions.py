@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from app import actions, chat_actions, conversation_history, goal_plans, goals, private_store, records
+from app import actions, chat_actions, chat_reminders, conversation_history, goal_plans, goals, private_store, records
 from app.api_errors import ApiError
 from app.auth import get_token_verifier
 from app.database import DatabaseError
@@ -116,7 +116,7 @@ def test_task_extraction_uses_local_date(monkeypatch):
         conversation_history.SendTurn(turn_id=uuid4(), content=REQUEST, timezone="invalid-zone")
 
 
-@pytest.mark.parametrize("decision", ["approve", "reject", "goal", "roadmap"])
+@pytest.mark.parametrize("decision", ["approve", "reject", "goal", "roadmap", "reminder"])
 def test_chat_task_lifecycle_with_postgres(monkeypatch, token_verifier, access_token, decision):
     url = os.getenv("CONVERSATIONS_TEST_DATABASE_URL")
     if not url:
@@ -152,6 +152,49 @@ def test_chat_task_lifecycle_with_postgres(monkeypatch, token_verifier, access_t
                     chat = client.post(CHAT, headers=headers, json={"title": "Synthetic chat"}).json()["id"]
                     turn = {"turn_id": str(uuid4()), "content": REQUEST, "timezone": "Africa/Lagos"}
                     path = f"{CHAT}/{chat}/turns"
+                    if decision == "reminder":
+                        from datetime import timedelta
+
+                        from app.reminder_worker import dispatch
+                        from zoneinfo import ZoneInfo
+
+                        tomorrow = datetime.now(ZoneInfo("Africa/Lagos")).date() + timedelta(days=1)
+                        provider.generate.return_value = (
+                            f'{{"title":"Study system design","local_date":"{tomorrow.isoformat()}",'
+                            '"local_time":"18:00:00","timezone":null,"repeat":"none"}'
+                        )
+                        monkeypatch.setattr(chat_reminders, "get_planning_provider", lambda: provider)
+                        turn["content"] = "Remind me to study system design tomorrow at 6 PM."
+                        response = client.post(path, headers=headers, json=turn)
+                        assert response.status_code == 200
+                        action = response.json()["action"]
+                        due = datetime.fromisoformat(action["proposal"]["reminder"]["due_at"])
+                        assert due == datetime(tomorrow.year, tomorrow.month, tomorrow.day, 17, tzinfo=UTC)
+                        assert client.get("/api/v1/reminders", headers=headers).json() == []
+                        approval = f"/api/v1/actions/{action['id']}/approve"
+                        assert client.post(approval, headers=outsider).status_code == 404
+                        result = client.post(approval, headers=headers)
+                        assert result.status_code == 200
+                        assert client.post(approval, headers=headers).json() == result.json()
+                        reminder_id = result.json()["result_id"]
+                        assert client.get("/api/v1/reminders", headers=headers).json()[0]["id"] == reminder_id
+                        reminder_path = f"/api/v1/reminders/{reminder_id}"
+                        assert client.post(f"{reminder_path}/cancel", headers=outsider).status_code == 404
+                        assert client.post(f"{reminder_path}/cancel", headers=headers).status_code == 200
+                        assert dispatch(connection, due) == 0
+                        new_due = due + timedelta(days=1)
+                        body = {"title": "Study system design", "due_at": new_due.isoformat(),
+                                "repeat": "none", "timezone": "Africa/Lagos"}
+                        assert client.put(reminder_path, headers=headers, json=body).status_code == 200
+                        repeated = client.put(reminder_path, headers=headers, json=body).json()
+                        assert repeated["occurrence"] == 1
+                        assert dispatch(connection, due) == 0
+                        assert dispatch(connection, new_due) == 1
+                        assert dispatch(connection, new_due + timedelta(minutes=1)) == 0
+                        inbox = client.get("/api/v1/reminders/notifications", headers=headers).json()
+                        assert len(inbox) == 1 and inbox[0]["title"] == "Study system design" and inbox[0]["push"] is None
+                        assert client.get("/api/v1/reminders/notifications", headers=outsider).json() == []
+                        return
                     if decision in {"goal", "roadmap"}:
                         import json
                         from datetime import timedelta

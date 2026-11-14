@@ -1,5 +1,5 @@
 // Synthetic shape for client freshness tests. Only FastAPI verifies signatures.
-export function fixtureJwt(expires = Math.floor(Date.now() / 1000) + 300) {
+export function fixtureJwt(expires = Math.floor(Date.now() / 1000) + 300, subject = 'fixture-user') {
   const segment = (value: object) => btoa(JSON.stringify(value)).replace(/=+$/, '')
-  return `${segment({ alg: 'EdDSA' })}.${segment({ exp: expires })}.fixture`
+  return `${segment({ alg: 'EdDSA' })}.${segment({ exp: expires, sub: subject })}.fixture`
 }

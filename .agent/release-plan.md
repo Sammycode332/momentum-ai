@@ -12,12 +12,12 @@ Owner approved independent implementation while the authentication/browser block
 
 | Feature | Status and evidence |
 | --- | --- |
-| Existing auth/onboarding/dashboard/CRUD/chat | Implemented; existing automated coverage; cold-load root cause and live multi-user verification still open |
+| Existing auth/onboarding/dashboard/CRUD/chat | Implemented; owner verified fresh sign-in, Overview cold reload and sign-out. Broader multi-user verification and managed Auth advisory status remain open. |
 | Goal lifecycle and task relationships | Implemented, build/API validation checked; new schema and real linked workflows not verified |
 | Consolidated frontend, landing, filters | Implemented and build/lint verified; screenshot/responsive/accessibility review incomplete |
 | Approved memory, tutoring/interview sessions, controlled actions | Implemented, focused safety tests passed; live persistence/RLS/provider evaluation incomplete |
-| Remotive opportunity discovery | Implemented public source adapter/cache/attribution; live feed not exercised; jobs/internships only |
-| Reminders and push | Durable scheduling/subscriptions/retries code present; helper tests passed; worker hosting/VAPID/device delivery blocked by external setup |
+| Remotive opportunity discovery | Public listings and external application links user-verified. Freshness, provider outage handling and private saving still need release evidence. Jobs and internships available. |
+| Reminders and push | Direct Windows desktop delivery user-verified. Restricted scheduler authentication still blocks scheduled delivery and restart verification. |
 | PWA | Minimal manifest/service worker prepared; installation and iOS icon/device support not verified |
 | Streaming | Deferred under ADR-021; atomic replies remain |
 | Account export and support | Implemented Settings UI and owner-scoped paged API; focused backend tests/build pass; live export unverified; support address configurable |

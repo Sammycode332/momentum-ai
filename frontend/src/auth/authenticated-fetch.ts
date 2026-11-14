@@ -14,6 +14,7 @@ export class ApiRequestError extends Error {
 const signInAgain = 'Your session has expired. Sign in again to continue.'
 const sessionUnavailable = 'Neon Auth could not verify your session. Try again.'
 let pendingToken: Promise<string> | undefined
+let pendingRefresh: Promise<string> | undefined
 
 function decodeSegment(segment: string) {
   return JSON.parse(atob(segment.replaceAll('-', '+').replaceAll('_', '/')))
@@ -38,7 +39,14 @@ async function resolveToken() {
   })
   const token = current?.data?.session?.token
   if (isFreshJwt(token)) return token
+  return refreshToken()
+}
 
+function refreshToken() {
+  return pendingRefresh ??= forceFreshToken().finally(() => { pendingRefresh = undefined })
+}
+
+async function forceFreshToken() {
   // X-Force-Fetch bypasses the installed Neon adapter's in-memory session cache.
   const fresh = await authClient.getSession({
     query: { disableCookieCache: true },
@@ -62,11 +70,31 @@ async function resolveToken() {
 
 export async function authenticatedFetch(path: string, options: RequestInit = {}) {
   options.signal?.throwIfAborted()
-  const token = await (pendingToken ??= resolveToken().finally(() => { pendingToken = undefined }))
+  const token = await (pendingRefresh ?? (pendingToken ??= resolveToken().finally(() => { pendingToken = undefined })))
+  function send(accessToken: string) {
+    options.signal?.throwIfAborted()
+    const headers = new Headers(options.headers)
+    headers.set('Authorization', `Bearer ${accessToken}`)
+    return fetch(path, { ...options, headers, cache: 'no-store' })
+  }
+
+  const response = await send(token)
+  const method = options.method?.toUpperCase() ?? 'GET'
+  if (response.status !== 401 || method !== 'GET') return response
+  const body = await response.clone().json().catch(() => null)
+  const code = body?.error?.code
+  if (code !== 'INVALID_ACCESS_TOKEN' && code !== 'ACCESS_TOKEN_EXPIRED' && code !== 'ACCESS_TOKEN_NOT_YET_VALID') {
+    return response
+  }
   options.signal?.throwIfAborted()
-  const headers = new Headers(options.headers)
-  headers.set('Authorization', `Bearer ${token}`)
-  return fetch(path, { ...options, headers, cache: 'no-store' })
+  const fresh = await refreshToken().catch(() => null)
+  options.signal?.throwIfAborted()
+  if (!fresh || fresh === token) return response
+  // A refresh may race with a switch to a different account.
+  const subject = decodeSegment(token.split('.')[1]).sub
+  return typeof subject === 'string' && subject && subject === decodeSegment(fresh.split('.')[1]).sub
+    ? send(fresh)
+    : response
 }
 
 export async function requireSuccess(response: Response, fallback: string) {

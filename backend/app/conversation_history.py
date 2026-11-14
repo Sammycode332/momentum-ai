@@ -20,6 +20,7 @@ from app.database import DatabaseConfigurationError, DatabaseError, database_con
 from app.planning import Principal
 from app.workspace_answers import workspace_answer, workspace_intent
 from app.goal_plans import GOAL_REQUEST, ROADMAP_REQUEST, draft_goal
+from app.chat_reminders import REMINDER_REQUEST, extract_reminder
 
 router = APIRouter(prefix="/api/v1/ai/conversations", tags=["conversation history"])
 CONVERSATIONS = "public.momentum_conversations"
@@ -249,7 +250,14 @@ def send_turn(chat_id: UUID, body: SendTurn, principal: Principal) -> Message:
         if "assistant" in saved:
             return restore_messages(cursor, owner, chat_id, [saved["assistant"]])[0]
         action = None
-        if TASK_REQUEST.search(body.content):
+        if REMINDER_REQUEST.search(body.content):
+            content, reminder = extract_reminder(body.content, body.timezone)
+            if reminder:
+                require_action_rls(cursor, "momentum_audit")
+                proposal = Proposal(kind="create_reminder", title=reminder.title, reason="Requested in chat.", reminder=reminder)
+                action = save_proposal(cursor, owner, proposal, proposal_id=proposal_id(owner, chat_id, body.turn_id))
+                content = PENDING
+        elif TASK_REQUEST.search(body.content):
             task = extract_task(body.content, body.timezone)
             if task is None:
                 content = (

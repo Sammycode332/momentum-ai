@@ -72,5 +72,14 @@ FND-01 completed at `dcfd151` after the documented frontend and backend checks. 
 - CHAT-WORKSPACE: all five read views and tenant isolation verified with authenticated API and restricted PostgreSQL fixtures. The owner verified real workspace retrieval in a signed-in browser.
 - CHAT-TASK-EDIT: single-field task changes implemented in chat and Approvals. Automated checks cover matching, ambiguity, approval, rejection, idempotency, stale edits, and rollback. The owner verified approval and persistence in a signed-in browser.
 - CHAT-GOAL-PLAN: goal and selective roadmap approval verified in automated and restricted PostgreSQL tests. Verify the signed-in chat review, resulting records after page reload, and saved progress.
+- CHAT-REMINDER: timed proposal, approval, reload and durable inbox dispatch verified against restricted development PostgreSQL. Activate the scheduler and push environment to verify external device delivery with the app closed.
 
 - NOTIFICATION-UX: morning/evening daily reminder shortcuts, unread/read/dismissed filters, bounded visible-record read/dismiss controls, reminder status filter and upcoming-first ordering implemented. Build/import checks in progress; live delivery/persistence still gated by runtime DB credentials and worker activation.
+
+- RELEASE-AUTH-READINESS: one same-account retry for eligible protected reads, rejection of unusable JWTs before signing-key lookup, and separate API liveness/readiness. Local regressions and development readiness verified. Owner verified the signed-in lifecycle.
+
+- DISCOVERY-VERIFY: owner verified signed-out listings and external application navigation. Source freshness, outage behavior and signed-in saving remain open.
+- RELEASE-SHELL: recovery referrer policy and keyboard navigation implemented. Check mobile tab order and recovery requests in staging with a synthetic account.
+- RELEASE-AUTH-DEPS: patched bundled Zod using a targeted override and documented production reachability for all remaining findings. Managed Neon Auth patch or configuration confirmation remains a release gate.
+- RELEASE-TENANT-EXPORT: synthetic owners each received only their own goals and memories through the authenticated export API on restricted development PostgreSQL. Expand isolation evidence across remaining export sections and other private endpoints.
+- RELEASE-STAGING: Blueprint and submission checklist prepared. Step 1 approved and exact Neon Free settings documented for owner creation. After confirmation, review the schema and role plan before requesting SQL authorization. Git and Render deployment remain separate.

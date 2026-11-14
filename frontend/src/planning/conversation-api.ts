@@ -21,8 +21,9 @@ export type ChatAction = {
   id: string
   status: 'pending' | 'applied' | 'rejected'
   result_id: string | null
-  proposal: { kind: 'create_task' | 'update_task' | 'create_goal' | 'save_roadmap'; title: string;
+  proposal: { kind: 'create_task' | 'update_task' | 'create_goal' | 'save_roadmap' | 'create_reminder'; title: string;
     priority: string; due_date: string | null; edit?: TaskEdit | null;
+    reminder?: { title: string; due_at: string; timezone: string; repeat: string } | null
     goal?: GoalDetails | null; roadmap?: Roadmap | null; receipt?: PlanReceipt | null }
 }
 export type SavedMessage = ChatTurn & { turn_id: string; position: number; action?: ChatAction | null }

@@ -7,6 +7,8 @@ See the [root setup guide](../README.md) and [migration instructions](migrations
 `python -m app.schema_audit` reads catalog metadata and reports missing private
 tables, active RLS and grants; it does not apply migrations or inspect user records.
 `GET /health/live` reports process liveness only.
+`GET /health/ready` on the private API returns 200 when the runtime connection
+works and RLS is active on the Goals table. Otherwise it returns 503.
 
 The optional push worker dependency is installed with `pip install '.[push]'`.
 Run `python -m app.reminder_worker` once per minute using a dedicated scheduler

@@ -5,7 +5,16 @@ The [master specification](master-specification.md) controls release scope. The
 development recovery passed 107 backend and 45 frontend tests, including real
 PostgreSQL isolation for goals and conversations. Signed synthetic API requests
 covered identity, onboarding, dashboard data and conversation history. This
-evidence does not cover a live Neon Auth session. No product phase is closed.
+evidence was recorded before the signed-in workflows below were verified.
+
+## Phase 9 checkpoint
+
+- **Verified in a browser by the owner:** signed-in workspace retrieval, task creation and edits, goal creation, selective roadmap persistence across Goals, Projects and Tasks, and direct Windows push. The owner also verified public opportunity listings and external links while signed out. Development PostgreSQL tests exercise signed-in persistence paths with synthetic owners and rolled-back records.
+- **Implemented with browser checks pending:** OTP and password recovery, configured Google sign-in, approved memory, practice and interviews, account export, and desktop/mobile PWA installation. The owner verified fresh sign-in, Overview cold reload and sign-out.
+- **Security and reliability:** reads now attempt one uncached same-account refresh on recognized token rejection. The API screens unusable JWT claims before looking up signing keys and still verifies signatures. Cross-user API verification across all private domains and complete dependency advisory review remain open.
+- **Accessibility and performance:** automated build and lint cover source checks. Browser keyboard, focus, contrast and responsive review, database query and request latency under representative workloads, and container execution measurements remain open.
+- **Operations:** private API liveness and database/RLS readiness are available. Staging topology, HTTPS and exact Auth origins, environment secrets, dependency/image pinning, alerts, and backup/rollback rehearsals remain release gates. Full account deletion and retention policy also need closure.
+- **Scheduled delivery blocker:** the last restricted development scheduler authentication check failed. Closed-tab scheduled Windows delivery and restart recovery are pending. Scheduler password troubleshooting is paused.
 
 ## A. Product requirements
 
@@ -15,12 +24,12 @@ evidence does not cover a live Neon Auth session. No product phase is closed.
 | 2. Computer verification | Partial | Terminal and real development database checks passed. Signed-in browser Network, responsive and screenshot evidence remain open. |
 | 3. Product vision | Partial | Connected workspace and general-purpose assistant exist. Validate full workflows across different user types. |
 | 4. Design and UX | Implemented but unverified in browser | Shared themes, navigation, landing, forms and Assistant modes exist. Review both themes, keyboard and mobile layouts in a real browser. |
-| 5. Authentication | Blocked on live verification | Neon email/OTP, recovery, Google configuration gate, signed requests and sign-out have code and automated coverage. Confirm the branch Auth endpoint and reproduce or rule out the cold-load rejection. |
+| 5. Authentication | Core session lifecycle user-verified | Fresh sign-in, Overview cold reload and sign-out passed in the owner's browser. Provider recovery and optional flows, branch association and hosted advisory status still need release evidence. |
 | 6. Dashboard and productivity | Partial | Records, linked tasks, milestones, goals, application stages, reminders and dashboard reads work at the API level. Verify editing/filtering workflows and recommendation coverage. |
 | 7. AI assistant | Partial | Gemini adapter, bounded context, persistence, rename/delete, Markdown and retry exist. Live multi-turn and cancellation checks remain. Streaming is deferred under ADR-021. |
 | 8. Tutoring | Implemented but unverified live | Guided topics, questions, feedback, progression limits and session history exist. Evaluate a live learning path and saved answers. |
 | 9. Interview preparation | Implemented but unverified live | Role/format selection, rubric, feedback and saved sessions exist. Evaluate mock interviews and follow-up quality. |
-| 10. Opportunity discovery | Partial | Attributed Remotive jobs/internships with caching, filters and save flow. Verify live source and stale-feed handling. Other requested categories need legitimate sources. |
+| 10. Opportunity discovery | Partial | Owner verified public browsing, visible listings and external application links. Verify freshness, stale-feed handling and the signed-in save workflow separately. Other requested categories need legitimate sources. |
 | 11. Personalized memory | Implemented but unverified live | Proposal, approval, correction, deletion and bounded retrieval exist. Verify cross-user isolation and relevance in live conversations. |
 | 12. Reminders and notifications | Partial and externally blocked | Scheduling, quiet hours, check-ins, snooze, history, push, retries and PWA shell exist. Verify worker and device delivery, linked-deadline behavior and supported installation. Optional email is missing. |
 | 13. Controlled actions | Implemented but unverified live | Structured proposals, separate approval, audit, idempotency and guarded deadline undo exist. Verify live execution, stale-target conflicts and cross-user denial. |
@@ -39,15 +48,15 @@ evidence does not cover a live Neon Auth session. No product phase is closed.
 | Phase | Implemented and verified so far | Open gate and next action |
 | --- | --- | --- |
 | 0 | Inventory, architecture, bug register, release plan, live schema audit | Finish dependency review and refresh release evidence. |
-| 1 | Restricted runtime recovery, passing automated auth tests and persisted conversation isolation | Confirm Neon Auth branch ownership and capture signed-in cold-reload Network evidence. Diagnose provider or token failures from that evidence. |
+| 1 | Restricted runtime recovery, signed-in cold reload, passing automated auth tests and persisted conversation isolation | Confirm Neon Auth branch ownership and verify recovery and optional provider flows. |
 | 2 | Unified Assistant, shared themes and navigation, auth screens | Review desktop, tablet and mobile in browser, including focus and contrast. |
 | 3 | Private record reads verified against Neon, CRUD and relationships implemented | Exercise goal/project/task and application-stage create/edit paths with synthetic data. |
 | 4 | Persistent chat and memory approval controls implemented | Verify live multi-turn Gemini, approved-memory retrieval, corrections and tenant boundaries. |
 | 5 | Guided tutoring and interview practice implemented | Evaluate real sessions and saved progress with controlled prompts. |
-| 6 | Public Remotive discovery and private saves implemented | Verify freshness and saving live. Obtain authorized sources for missing categories. |
-| 7 | Migration and restricted scheduler role verified. Reminder and push code exists | Activate worker and VAPID only in approved development setup, then verify device delivery and PWA installation. |
+| 6 | Public listings and external destinations user-verified; private saves implemented | Verify freshness, unavailable-source behavior and signed-in saving. Obtain authorized sources for missing categories. |
+| 7 | Reminder storage and RLS verified with synthetic fixtures. Owner verified direct Windows push. | Restricted worker authentication blocks the scheduled closed-tab and restart tests. PWA installation remains unverified. |
 | 8 | Approval workflow, history and guarded undo implemented. 010/014 schema verified | Test approved/rejected/reverted actions and concurrent edits in development. |
-| 9 | Export, health check, CI/container templates and operational drafts | Validate staging, recovery, accessibility, retention, account deletion, costs and release checklist. |
+| 9 | Export, liveness and database readiness, user-verified cold reload, Zod remediation, export isolation integration, CI/container templates and operational drafts | Confirm Neon-managed Auth advisory status, broaden tenant isolation checks, then validate staging, recovery, accessibility, retention, account deletion and cost controls. |
 
 Existing additions beyond the detailed master examples include safe deadline
 undo, bulk read/dismiss controls, and the explicit application-stage pipeline.

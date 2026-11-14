@@ -91,4 +91,37 @@ Notification usability checkpoint: API import plus valid/oversized batch validat
 
 - Focused restricted PostgreSQL and backend suite: 51 passed. Used signed synthetic subjects and rolled-back records. Verified goal listing, selective roadmap approval, real goal/project/milestone/subtask links, replay receipts, rejection, late transaction failure, and cross-user API denial.
 - Goal draft and workspace progress checks: 10 passed. Verified timezone-aware calendar-month boundaries, ambiguous drafts, malformed provider output and provider failure. A separate synthetic Gemini roadmap generation matched the schema and date bounds.
-- Frontend goal and review tests: 9 passed. Build and lint passed. Signed-in browser acceptance remains outstanding for Milestone C.
+- Frontend goal and review tests: 9 passed. Build and lint passed. The owner later verified goal creation, roadmap review and selective persistence in a signed-in browser.
+
+## Timed reminders and push
+
+- Restricted development PostgreSQL and backend regression run: 37 passed, including chat approval and reminder reload, retry, owner isolation, cancellation, rescheduling, and duplicate inbox dispatch checks using rolled-back synthetic records. Dispatch ran directly against fixture rows using the API role. A separately configured scheduler process and restart recovery were not exercised.
+- Focused timezone, recurrence, push retry and release regressions: 15 passed. Live Gemini produced a valid reminder draft for the synthetic prompt with the requested local time and zone.
+- Frontend: 6 checks passed, including approval and simulated browser permission, service worker registration, subscription and test feedback. Build and lint passed. The owner later confirmed actual Windows desktop delivery from the direct push test. Closed-tab scheduled delivery, scheduler restart recovery and mobile installation remain unverified.
+
+## Phase 9 — Session recovery and readiness
+
+- Frontend `npm test` passed all 55 tests; `npm run lint` and `npm run build` passed. Coverage includes concurrent token recovery, same-account retry limits, wrong-account rejection and write replay prevention.
+- The backend suite with restricted development PostgreSQL passed 151 tests at the integration checkpoint, including authenticated API workflows and synthetic rollback/isolation fixtures. After the final local auth/readiness changes, the focused `tests/test_app.py` suite passed all 17 tests. `pip check` passed.
+- The follow-up integration run passed 155 of 156 tests. The task-approval fixture failed before SQL execution because Windows could not resolve the development Neon host. The focused rerun passed both task approval and the reminder lifecycle. The reminder fixture now generates its expected date from the same Lagos calendar used by the test.
+- A live readiness probe and read-only schema audit passed against development using `momentum_app`. RLS was active on all 20 audited tables. Catalog inspection alone does not establish cross-user isolation for every API.
+- Run a fresh signed-in browser load of Overview and a cold reload with the Network panel open, then sign out and verify that protected data is unavailable. Capture only sanitized status, error code and request reference if a request fails. Recovery email, Google OAuth when enabled, and accessibility and responsive checks still need separate browser evidence.
+
+## Phase 6 browsing and Phase 9 app shell
+
+- Owner browser verification confirmed signed-out opportunity browsing, rendered listings and external source/application links. Provider outage handling and freshness were outside that verification.
+- Frontend tests passed 56/56, including one main landmark, skip-to-content focus, mobile navigation Escape/focus restoration and sign-out through the account menu. Lint and production build passed. Verified the generated HTML includes `strict-origin` before asset references.
+- Check closed mobile navigation tab order with a real browser and verify same-origin asset referrers and ingress log redaction with a synthetic recovery callback in staging.
+
+## Phase 9 — Auth dependency triage and export isolation
+
+- Owner-confirmed fresh sign-in, Overview cold reload and sign-out before the Zod-only change. Managed provider patch status remains separate from the local lockfile.
+- Focused backend authentication and export checks passed 21/21. The export integration uses `momentum_app`, two synthetic users and a rolled-back transaction on the verified development endpoint. It covers goals and memories. Other sections and the browser download still need verification.
+- Full and production-only npm audit results agree. GHSA-mrhx-c7xc-m3w5 is cleared. Nine affected package entries remain, corresponding to four unique advisories described in the security review.
+- Windows blocked an in-place `npm ci` on an in-use native module. The clean install passed in an isolated directory, and the normal workspace was restored with `npm install`. Final workspace checks passed 56/56 frontend tests, lint and production build with Zod 4.6.7. The final emitted-module check found 18 Zod modules and zero flagged Auth server or email-render modules.
+
+## Phase 9 — Hosting preparation
+
+- The staging Blueprint parsed and passed Render's published JSON Schema. Local checks verified a same-region private API reference, manual deployments, environment separation and the public liveness/private readiness route definitions. The frontend build passed using a synthetic Auth URL.
+- Focused backend health, auth and account checks passed 20 tests. The database-dependent export test was skipped in this local run and retains its earlier development integration evidence.
+- Docker Desktop's Linux engine was unavailable. Runtime container, DNS refresh and Render workspace validation remain deployment checks. No hosted environment or database objects were created.

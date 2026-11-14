@@ -17,6 +17,17 @@ const message: SavedMessage = {
   turn_id: 'turn-1', position: 1, role: 'assistant', content: 'Review the proposal.', action: pending,
 }
 
+it('reviews the proposed local reminder time before confirming scheduling', async () => {
+  const action: ChatAction = { ...pending, proposal: { ...pending.proposal, kind: 'create_reminder',
+    reminder: { title: 'Study system design', due_at: '2026-11-15T17:00:00Z', timezone: 'Africa/Lagos', repeat: 'none' } } }
+  vi.mocked(api).mockResolvedValueOnce({ ...action, status: 'applied', result_id: 'reminder-1' })
+  render(<ConversationAssistant chatId="chat-1" initialMessages={[{ ...message, action }]} />)
+  expect(screen.getByText(/Africa\/Lagos/)).toHaveTextContent(/6:00 PM|18:00/)
+  expect(screen.queryByText(/Reminder scheduled/)).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Approve and schedule reminder' }))
+  expect(await screen.findByText(/Reminder scheduled/)).toBeInTheDocument()
+})
+
 it('shows a pending proposal, reports failure, then displays confirmed creation and loads the task on mount', async () => {
   const applied = { ...pending, status: 'applied', result_id: 'task-1' }
   vi.mocked(api).mockRejectedValueOnce(new Error('Storage unavailable.')).mockResolvedValueOnce(applied)

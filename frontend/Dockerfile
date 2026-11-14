@@ -10,8 +10,12 @@ ENV VITE_NEON_AUTH_URL=$VITE_NEON_AUTH_URL VITE_SUPPORT_EMAIL=$VITE_SUPPORT_EMAI
 RUN test -n "$VITE_NEON_AUTH_URL" && npm run build
 
 FROM nginx:stable-alpine
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/templates/nginx.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
+ENV MOMENTUM_API_UPSTREAM=api:8000 \
+    NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
+    NGINX_ENVSUBST_OUTPUT_DIR=/tmp \
+    NGINX_ENVSUBST_FILTER="^(MOMENTUM_API_UPSTREAM|NGINX_LOCAL_RESOLVERS)$"
 USER nginx
 EXPOSE 8080
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-c", "/tmp/nginx.conf", "-g", "daemon off;"]

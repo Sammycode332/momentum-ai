@@ -34,4 +34,10 @@ Resolved entries remain in this file with their history.
 
 Notification UI/bulk-state work adds no migration and does not resolve the existing runtime credential rejection. No live notification data or external delivery was exercised.
 
-- Milestone C still needs a signed-in browser walkthrough. Goal description and target date on the Goals page would require a separately approved schema change. The proposal history already retains these details.
+- Goal description and target date on the Goals page would require a separately approved schema change. The proposal history retains these details.
+- Phase 7 direct Windows push is user-verified. Scheduled delivery is blocked because Neon rejects the configured restricted worker login and no local worker or scheduled task was found. Restore the worker credential and verify read-only login before running the closed-tab reminder and restart test.
+- The focused follow-up matched the worker URI to the development endpoint, application database and restricted worker role. URI decoding was consistent, with no apparent double encoding or active connection override. The runtime catalog confirmed LOGIN, CONNECT and scheduler inheritance without Neon admin membership. After the owner saved a refreshed URI, the final read-only check again received an authentication rejection before SQL execution. Neon supplied no SQLSTATE. Scheduler troubleshooting is paused at the owner's direction.
+
+- Phase 9 Zod override clears its high advisory. Before launch obtain confirmation that managed Neon Auth is patched or that affected server configurations are absent for GHSA-965c-763c-88jm and GHSA-r4xp-prcw-77qf. The local bundle contains no affected server handlers. See the security review for locked versions and remaining findings.
+- The owner verified fresh sign-in, Overview cold reload and sign-out on the existing client. Staging deployment validation is open. The local Docker Linux engine was unavailable. Container startup, alert routing, load behavior and backup/rollback rehearsals remain unverified.
+- Step 1 synthetic staging is approved. Owner creation of the clean Neon Free project and branch is pending. Render workspace validation, container execution and hosted HTTPS/private-network checks remain pending. See the staging runbook for the separate launch blockers.

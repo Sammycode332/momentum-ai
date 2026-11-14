@@ -18,10 +18,15 @@ def quiet_until(now,zone,start,end):
 
 
 def next_daily(due,now,zone):
-    z=ZoneInfo(zone); previous=due.astimezone(z); today=now.astimezone(z)
-    candidate=today.replace(hour=previous.hour,minute=previous.minute,second=0,microsecond=0)
-    if candidate.astimezone(UTC)<=now: candidate+=timedelta(days=1)
-    return candidate.astimezone(UTC)
+    z = ZoneInfo(zone)
+    clock = due.astimezone(z).time()
+    day = now.astimezone(z).date()
+    while True:
+        wall_time = datetime.combine(day, clock)
+        candidate = wall_time.replace(tzinfo=z, fold=0).astimezone(UTC)
+        if candidate > now and candidate.astimezone(z).replace(tzinfo=None) == wall_time:
+            return candidate
+        day += timedelta(days=1)
 
 
 def dispatch(connection,now):
@@ -57,7 +62,7 @@ def main():
     if not url:
         print('Worker not configured. Set REMINDER_DATABASE_URL for the restricted scheduler role.');return 2
     try:
-        with psycopg.connect(url,sslmode='require',channel_binding='require',connect_timeout=5) as connection:
+        with psycopg.connect(url,sslmode='require',channel_binding='require',gssencmode='disable',connect_timeout=5) as connection:
             if connection.execute("SELECT pg_has_role(current_user,'momentum_scheduler','member'),rolsuper,rolbypassrls FROM pg_roles WHERE rolname=current_user").fetchone() != (True,False,False):
                 print('Worker requires a nonprivileged scheduler member.');return 2
             count=dispatch(connection,datetime.now(UTC))
