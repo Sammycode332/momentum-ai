@@ -1,8 +1,9 @@
+
 {
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://momentum-ai-nwut.onrender.com"
+      "destination": "https://momentum-ai-nwut.onrender.com/api/:path*"
     }
   ]
 }
