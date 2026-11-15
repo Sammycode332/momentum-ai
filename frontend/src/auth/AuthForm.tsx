@@ -111,7 +111,11 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
       }
 
       if (mode === 'sign-in') {
-        await onAuthenticated()
+        try{
+          await onAuthenticated()
+        }finally{
+          window.location.reload()
+        }
       } else {
         showVerificationPrompt(email)
       }
@@ -199,7 +203,7 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
 
       {sessionError ? (
         <p role="alert" className="feedback-error">
-          Your session could not be restored. Sign in again and verify that this browser origin is trusted in Neon Auth.
+          Your session could not be restored. Sign in again and verify again
         </p>
       ) : null}
 
