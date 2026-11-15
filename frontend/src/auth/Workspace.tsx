@@ -52,6 +52,7 @@ export function Workspace({ email, name, onSignedOut }: WorkspaceProps) {
       try { await disablePush() } catch { /* Sign-out must remain available if push cleanup fails. */ }
       const result = await authClient.signOut()
       if (result.error) throw new Error('Sign-out failed')
+      await onSignedOut()
       window.location.reload()
     } catch {
       setSignOutError('Could not sign out. Please try again.')
