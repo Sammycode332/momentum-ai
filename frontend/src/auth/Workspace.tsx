@@ -53,7 +53,6 @@ export function Workspace({ email, name, onSignedOut }: WorkspaceProps) {
       const result = await authClient.signOut()
       if (result.error) throw new Error('Sign-out failed')
       await onSignedOut()
-      window.location.reload()
     } catch {
       setSignOutError('Could not sign out. Please try again.')
     } finally { setIsSigningOut(false) }
