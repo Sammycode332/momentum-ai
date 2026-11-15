@@ -111,11 +111,8 @@ export function AuthForm({ onAuthenticated, sessionError = false }: AuthFormProp
       }
 
       if (mode === 'sign-in') {
-        try{
-          await onAuthenticated()
-        }finally{
           window.location.reload()
-        }
+          return
       } else {
         showVerificationPrompt(email)
       }
