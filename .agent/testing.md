@@ -133,6 +133,10 @@ Notification usability checkpoint: API import plus valid/oversized batch validat
 
 ## Production database diagnostics — 2026-11-24
 
+## Gemini 503 recovery — 2026-11-24
+
+- Focused run: tests/test_planning.py, tests/test_conversation.py, tests/test_conversation_history.py, tests/test_chat_actions.py and tests/test_release_features.py: 60 passed, 6 skipped. Provider calls mocked; added transient recovery, persistent 503 exhaustion, bounded delay, identical generation payload and remaining time-budget checks. Existing non-retryable errors, action approval and idempotency unit coverage passed. Database-dependent tests skipped; no real Gemini calls or database changes. Existing Starlette/httpx deprecation warning remains. Hosted retry recovery needs deployment and owner verification.
+
 - Follow-up reason-code diagnostics passed 88 focused tests using the same five test modules. Six added cases distinguish empty configuration, invalid prefix, unsupported URI parameter, and missing host/database/password while checking redaction. No live database requests were made.
 
 - `python -m pytest -q tests/test_database.py tests/test_goals.py tests/test_records.py tests/test_onboarding.py tests/test_app.py --maxfail=1` passed 82 tests. Database operations were mocked. Coverage includes credential/record redaction, PostgreSQL codes, libpq failures, transaction errors and rollback propagation, safety guard failures and invalid configuration. Existing domain 503 and authentication tests passed.

@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from google import genai
 from google.genai import errors
 
-from app import planning, planning_context
+from app import planning, planning_context, planning_provider
 from app.auth import get_token_verifier
 from app.main import app
 from app.planning_provider import GeminiProvider
@@ -96,10 +96,11 @@ def test_invalid_provider_output_is_rejected(harness, output):
     (httpx.ReadTimeout("private timeout"), 504, "AI_TIMEOUT"),
     (errors.ClientError(429, {"error": {"message": "private quota"}}), 429, "AI_RATE_LIMIT"),
     (errors.ClientError(404, {"error": {"message": "private model"}}), 503, "AI_MODEL_UNAVAILABLE"),
-    (errors.ServerError(503, {"error": {"message": "private outage"}}), 502, "AI_PROVIDER_ERROR"),
+    (errors.ServerError(503, {"error": {"message": "private outage"}}), 503, "AI_UNAVAILABLE"),
 ])
 def test_provider_failures_are_safe(harness, monkeypatch, failure, status, code):
     sdk = Mock()
+    monkeypatch.setattr(planning_provider, "sleep", Mock())
     sdk.models.generate_content.side_effect = failure
     monkeypatch.setattr(genai, "Client", lambda **kwargs: nullcontext(sdk))
     monkeypatch.setattr(planning, "get_planning_provider", lambda: GeminiProvider("synthetic", "model"))
@@ -107,7 +108,7 @@ def test_provider_failures_are_safe(harness, monkeypatch, failure, status, code)
     assert response.status_code == status
     assert response.json()["error"]["code"] == code
     assert "private" not in response.text
-    sdk.models.generate_content.assert_called_once()
+    assert sdk.models.generate_content.call_count == (2 if code == "AI_UNAVAILABLE" else 1)
 
 
 def test_gemini_requests_structured_output_with_a_single_bounded_attempt(monkeypatch):
@@ -118,12 +119,46 @@ def test_gemini_requests_structured_output_with_a_single_bounded_attempt(monkeyp
     schema = planning.DraftPlan.model_json_schema()
     assert GeminiProvider("synthetic", "model").generate({"request": REQUEST}, schema) == draft()
     options = client.call_args.kwargs["http_options"]
-    assert options.timeout == 45_000
+    assert 44_000 <= options.timeout <= 45_000
     assert options.retry_options.attempts == 1
     call = sdk.models.generate_content.call_args.kwargs
     assert call["model"] == "model"
     assert call["config"].response_json_schema == schema
     assert call["config"].tools is None
+
+
+def test_gemini_retries_only_generation_on_503(monkeypatch, caplog):
+    sdk = Mock()
+    sdk.models.generate_content.side_effect = [
+        errors.ServerError(503, {"error": {"message": "private outage"}}),
+        SimpleNamespace(text=draft()),
+    ]
+    clients = Mock(side_effect=lambda **kwargs: nullcontext(sdk))
+    pause = Mock()
+    monkeypatch.setattr(genai, "Client", clients)
+    monkeypatch.setattr(planning_provider, "sleep", pause)
+    assert GeminiProvider("synthetic", "model").generate(REQUEST, {}) == draft()
+    assert sdk.models.generate_content.call_count == 2
+    assert sdk.models.generate_content.call_args_list[0] == sdk.models.generate_content.call_args_list[1]
+    pause.assert_called_once()
+    assert 1 <= pause.call_args.args[0] <= 1.25
+    assert clients.call_args_list[1].kwargs["http_options"].timeout <= clients.call_args_list[0].kwargs["http_options"].timeout
+    assert "private outage" not in caplog.text
+    assert "synthetic" not in caplog.text
+
+
+def test_gemini_does_not_retry_when_time_budget_is_exhausted(monkeypatch):
+    sdk = Mock()
+    sdk.models.generate_content.side_effect = errors.ServerError(503, {"error": {"message": "private"}})
+    monkeypatch.setattr(genai, "Client", lambda **kwargs: nullcontext(sdk))
+    monkeypatch.setattr(planning_provider, "monotonic", Mock(side_effect=[0, 0, 44]))
+    pause = Mock()
+    monkeypatch.setattr(planning_provider, "sleep", pause)
+    with pytest.raises(planning_provider.ApiError) as failure:
+        GeminiProvider("synthetic", "model").generate(REQUEST, {})
+    assert failure.value.code == "AI_UNAVAILABLE"
+    sdk.models.generate_content.assert_called_once()
+    pause.assert_not_called()
 
 
 def test_context_queries_scope_every_domain_and_bound_results(monkeypatch, user_a, user_b):

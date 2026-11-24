@@ -257,3 +257,7 @@ Prepare an opt-in Render Blueprint for a public HTTPS Nginx service and a privat
 ## Database failure diagnostics — 2026-11-24
 
 Log original Psycopg exception type, a validated SQLSTATE when supplied, a fixed sanitized message and connection/transaction phase before translating the exception. Classify libpq connection failures using known markers without emitting the source text. Configuration and application database safety failures receive fixed messages. Omit raw driver messages, DETAIL, HINT, SQL, parameters, connection URLs and traceback exception text because these may contain credentials or private records. Public API errors retain their existing contract.
+
+## Gemini temporary unavailability — 2026-11-24
+
+For confirmed upstream HTTP 503 responses, retry generation once after 1–1.25 seconds with jitter, using the remaining 45-second provider time budget. Keep SDK automatic retries disabled to avoid nested retries. Do not replay API requests, approvals or database operations, switch models, or retry invalid configuration/quota failures. Exhausted 503 responses return HTTP 503 / AI_UNAVAILABLE with fixed temporary-unavailability wording. This improves transient recovery but cannot guarantee upstream availability.

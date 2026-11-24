@@ -2,6 +2,8 @@ import json
 import logging
 from os import getenv
 from pathlib import Path
+from random import uniform
+from time import monotonic, sleep
 from typing import Any, Protocol
 
 import httpx
@@ -46,24 +48,35 @@ class GeminiProvider:
             raise ApiError(503, "AI_SDK_UNAVAILABLE", "The Gemini SDK is unavailable. Check the backend installation.") from None
 
         try:
-            with genai.Client(
-                api_key=self._api_key,
-                vertexai=False,
-                http_options=types.HttpOptions(
-                    timeout=GENERATION_TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1),
-                ),
-            ) as client:
-                result = client.models.generate_content(
-                    model=self._model,
-                    contents=json.dumps(payload, default=str),
-                    config=types.GenerateContentConfig(
-                        system_instruction=instructions,
-                        response_mime_type="application/json",
-                        response_json_schema=schema,
-                        max_output_tokens=4096,
-                    ),
-                )
-                return result.text or ""
+            deadline = monotonic() + GENERATION_TIMEOUT_MS / 1000
+            contents = json.dumps(payload, default=str)
+            config = types.GenerateContentConfig(
+                system_instruction=instructions,
+                response_mime_type="application/json",
+                response_json_schema=schema,
+                max_output_tokens=4096,
+            )
+            # Retry generation only. Never replay the enclosing API request or writes.
+            for attempt in range(2):
+                try:
+                    with genai.Client(
+                        api_key=self._api_key,
+                        vertexai=False,
+                        http_options=types.HttpOptions(
+                            timeout=max(1, int((deadline - monotonic()) * 1000)),
+                            retry_options=types.HttpRetryOptions(attempts=1),
+                        ),
+                    ) as client:
+                        result = client.models.generate_content(
+                            model=self._model, contents=contents, config=config,
+                        )
+                        return result.text or ""
+                except errors.APIError as error:
+                    delay = 1 + uniform(0, 0.25)
+                    if error.code != 503 or attempt != 0 or deadline - monotonic() <= delay + 1:
+                        raise
+                    logger.warning("Gemini temporarily unavailable (HTTP 503); retrying generation once")
+                    sleep(delay)
         except (httpx.TimeoutException, TimeoutError) as error:
             logger.warning("Gemini generation timed out (%s)", type(error).__name__)
             raise ApiError(504, "AI_TIMEOUT", "Gemini timed out. Please try again.") from None
@@ -73,6 +86,8 @@ class GeminiProvider:
                 raise ApiError(504, "AI_TIMEOUT", "Gemini timed out. Please try again.") from None
             if error.code == 429:
                 raise ApiError(429, "AI_RATE_LIMIT", "Gemini is busy. Wait a moment and try again.") from None
+            if error.code == 503:
+                raise ApiError(503, "AI_UNAVAILABLE", "Gemini is temporarily unavailable. Please try again shortly.") from None
             if error.code in (401, 403, 404):
                 raise ApiError(503, "AI_MODEL_UNAVAILABLE", "Check the Gemini model and backend service configuration.") from None
             if error.code == 400 and getattr(error, "status", None) == "INVALID_ARGUMENT":
