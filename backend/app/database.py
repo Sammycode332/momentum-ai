@@ -30,7 +30,9 @@ _SQLSTATE_MESSAGES = {
 
 
 class DatabaseConfigurationError(ValueError):
-    pass
+    def __init__(self, message: str, *, reason: str = "unspecified"):
+        super().__init__(message)
+        self.reason = reason
 
 
 class DatabaseError(RuntimeError):
@@ -64,6 +66,11 @@ def _log_database_failure(error: Exception, phase: str) -> None:
         "Database failure phase=%s type=%s sqlstate=%s message=%s",
         phase, type(error).__name__, state, message,
     )
+    if isinstance(error, DatabaseConfigurationError):
+        allowed = {"missing_value", "invalid_prefix", "unsupported_parameter", "parse_failed",
+                   "missing_host", "invalid_host", "missing_dbname", "missing_user", "missing_password"}
+        reason = error.reason if error.reason in allowed else "unspecified"
+        logger.warning("Database configuration rejected reason=%s", reason)
 
 
 def _database_url() -> str:
@@ -72,24 +79,27 @@ def _database_url() -> str:
         url = dotenv_values(_ENV_FILE, interpolate=False).get("DATABASE_URL")
     if not url or not url.strip():
         raise DatabaseConfigurationError(
-            "Set DATABASE_URL in the backend environment or backend/.env."
+            "Set DATABASE_URL in the backend environment or backend/.env.", reason="missing_value"
         )
 
     message = "DATABASE_URL must be a PostgreSQL URI with a host, database, user, and password."
     if not url.startswith(("postgresql://", "postgres://")):
-        raise DatabaseConfigurationError(message)
+        raise DatabaseConfigurationError(message, reason="invalid_prefix")
     try:
         parameters = conninfo_to_dict(url)
-    except psycopg.Error:
-        raise DatabaseConfigurationError(message) from None
+    except psycopg.Error as error:
+        reason = ("unsupported_parameter" if "invalid uri query parameter" in str(error).casefold()
+                  else "parse_failed")
+        raise DatabaseConfigurationError(message, reason=reason) from None
 
     host = parameters.get("host", "")
-    if (
-        not host
-        or any(character in host for character in ("/", "\\", ",", "@"))
-        or not all(parameters.get(key) for key in ("dbname", "user", "password"))
-    ):
-        raise DatabaseConfigurationError(message)
+    if not host:
+        raise DatabaseConfigurationError(message, reason="missing_host")
+    if any(character in host for character in ("/", "\\", ",", "@")):
+        raise DatabaseConfigurationError(message, reason="invalid_host")
+    for key in ("dbname", "user", "password"):
+        if not parameters.get(key):
+            raise DatabaseConfigurationError(message, reason=f"missing_{key}")
     return url
 
 

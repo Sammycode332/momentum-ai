@@ -85,3 +85,4 @@ FND-01 completed at `dcfd151` after the documented frontend and backend checks. 
 - RELEASE-STAGING: Blueprint and submission checklist prepared. Step 1 approved and exact Neon Free settings documented for owner creation. After confirmation, review the schema and role plan before requesting SQL authorization. Git and Render deployment remain separate.
 - RELEASE-PRODUCTION-SCHEMA: baseline reported by the owner. Review the production initialization proposal before any database changes. Auth, worker activation and hosting remain separate.
 - DB-503-DIAGNOSTICS: shared sanitized failure logging implemented and 82 focused tests passed. Next inspect the new Render `Database failure` entry after rollout and reproduce one protected read.
+- DB-503-DIAGNOSTICS follow-up: Render confirms configuration-phase failure. Specific allowlisted rejection reasons are implemented locally and 88 tests pass. Deploy and inspect the reason before proposing a configuration or parser fix.

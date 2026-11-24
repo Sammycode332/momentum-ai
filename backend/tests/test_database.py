@@ -8,6 +8,25 @@ from app import database
 TEST_URL = "postgresql://test_user:test_password@db.example.test/test_db"
 
 
+@pytest.mark.parametrize("url, reason", [
+    ("", "missing_value"),
+    ("'" + TEST_URL + "'", "invalid_prefix"),
+    (TEST_URL + "?private_unsupported=value", "unsupported_parameter"),
+    ("postgresql://test_user@db.example.test/test_db", "missing_password"),
+    ("postgresql://test_user:test_password@/test_db", "missing_host"),
+    ("postgresql://test_user:test_password@db.example.test", "missing_dbname"),
+])
+def test_configuration_reason_is_specific_and_redacted(url, reason, monkeypatch, caplog):
+    monkeypatch.setenv("DATABASE_URL", url)
+    with pytest.raises(database.DatabaseConfigurationError):
+        with database.database_connection():
+            pytest.fail("Invalid configuration should not connect")
+    assert f"Database configuration rejected reason={reason}" in caplog.text
+    assert "test_password" not in caplog.text
+    assert "db.example.test" not in caplog.text
+    assert "private_unsupported" not in caplog.text
+
+
 @pytest.fixture(autouse=True)
 def isolated_database(monkeypatch, tmp_path):
     monkeypatch.delenv("DATABASE_URL", raising=False)

@@ -133,5 +133,7 @@ Notification usability checkpoint: API import plus valid/oversized batch validat
 
 ## Production database diagnostics — 2026-11-24
 
+- Follow-up reason-code diagnostics passed 88 focused tests using the same five test modules. Six added cases distinguish empty configuration, invalid prefix, unsupported URI parameter, and missing host/database/password while checking redaction. No live database requests were made.
+
 - `python -m pytest -q tests/test_database.py tests/test_goals.py tests/test_records.py tests/test_onboarding.py tests/test_app.py --maxfail=1` passed 82 tests. Database operations were mocked. Coverage includes credential/record redaction, PostgreSQL codes, libpq failures, transaction errors and rollback propagation, safety guard failures and invalid configuration. Existing domain 503 and authentication tests passed.
 - The initial sandboxed run encountered Windows temporary-directory errors. The focused rerun outside that restriction passed. No live database connection or deployment was used for these checks. A Starlette/httpx deprecation warning remains.
