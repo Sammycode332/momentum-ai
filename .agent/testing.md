@@ -130,3 +130,8 @@ Notification usability checkpoint: API import plus valid/oversized batch validat
 
 - Local PostgreSQL 18.7 started with a fresh disposable database. Application role, 001–004, base grants, 005–008, scheduler group, corrected 009, original 010, 011–013, standalone 014, and runtime LOGIN all committed. Runtime RLS was active on all 20 private tables. Scoped grants, the `remotive` cache seed and unset-owner read checks passed.
 - Focused goals, conversation history, account export and chat-action suites passed 32 tests using synthetic fixtures. Neon-managed password reset and pooled authentication remain to be verified.
+
+## Production database diagnostics — 2026-11-24
+
+- `python -m pytest -q tests/test_database.py tests/test_goals.py tests/test_records.py tests/test_onboarding.py tests/test_app.py --maxfail=1` passed 82 tests. Database operations were mocked. Coverage includes credential/record redaction, PostgreSQL codes, libpq failures, transaction errors and rollback propagation, safety guard failures and invalid configuration. Existing domain 503 and authentication tests passed.
+- The initial sandboxed run encountered Windows temporary-directory errors. The focused rerun outside that restriction passed. No live database connection or deployment was used for these checks. A Starlette/httpx deprecation warning remains.

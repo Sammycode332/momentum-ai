@@ -142,3 +142,5 @@ Notification usability final checks: frontend production build and lint both pas
 - The owner supplied the successful read-only production catalog result for `neondb`. Nine Auth tables exist, with no Momentum application tables or roles. The [production initialization proposal](production-initialization.md) records the clean 001–014 sequence and preflight, verification and recovery steps for approval. Production Auth service and hosting readiness remain unverified.
 
 - Local PostgreSQL 18.7 rehearsal committed all 14 migrations and the separate role and grant checkpoints. Runtime RLS on 20 private tables and 32 focused tests passed. Production initialization remains pending Neon recovery and restricted login verification.
+
+- 2026-11-24 production 503 investigation located exception suppression in `database_connection`, followed by domain 503 translation. Added safe shared diagnostics for original exception type, validated SQLSTATE, fixed message and failure phase. Focused mocked database, goals, records, onboarding and auth/API suites passed 82 tests. Actual Render cause awaits a deployed diagnostic entry.

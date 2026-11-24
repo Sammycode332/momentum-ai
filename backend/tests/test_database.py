@@ -77,3 +77,87 @@ def test_check_reports_connection_failure_without_driver_details(
     captured = capsys.readouterr()
     assert "Database connectivity check failed." in captured.out
     assert TEST_URL not in captured.out + captured.err
+
+
+@pytest.mark.parametrize("error, message, state", [
+    (psycopg.errors.InvalidPassword('password authentication failed for user "private-user"'),
+     "Database password authentication failed.", "28P01"),
+    (psycopg.errors.InsufficientPrivilege('permission denied for table "private-table"'),
+     "Database permission denied.", "42501"),
+    (psycopg.errors.UndefinedTable('relation "private-table" does not exist'),
+     "Required database relation is missing.", "42P01"),
+    (psycopg.errors.UndefinedColumn('column "private-column" does not exist'),
+     "Required database column is missing.", "42703"),
+    (psycopg.errors.CheckViolation('private-row-value'),
+     "Database check constraint rejected the operation.", "23514"),
+    (psycopg.OperationalError(f'failed to resolve host: {TEST_URL}'),
+     "Database hostname resolution failed.", "unavailable"),
+    (psycopg.OperationalError(f'channel binding failed: {TEST_URL}'),
+     "Database channel binding negotiation failed.", "unavailable"),
+    (psycopg.OperationalError(f'SSL error: {TEST_URL}'),
+     "Database TLS negotiation failed.", "unavailable"),
+    (psycopg.OperationalError(f'connection timeout: {TEST_URL}'),
+     "Database connection timed out.", "unavailable"),
+    (psycopg.OperationalError(f'Unexpected private-row-value {TEST_URL}'),
+     "Database operation failed.", "unavailable"),
+])
+def test_connection_diagnostics_keep_only_safe_summary(
+    error, message, state, monkeypatch, isolated_database, caplog
+):
+    monkeypatch.setenv("DATABASE_URL", TEST_URL)
+    isolated_database.side_effect = error
+
+    with pytest.raises(database.DatabaseError, match="^The database operation failed\\.$"):
+        with database.database_connection():
+            pytest.fail("Connection should fail before yielding")
+
+    assert f"phase=connect type={type(error).__name__} sqlstate={state}" in caplog.text
+    assert message in caplog.text
+    assert str(error) not in caplog.text
+    assert TEST_URL not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+
+
+@pytest.mark.parametrize("phase", ["query", "commit", "guard"])
+def test_transaction_failure_is_logged_without_changing_rollback_or_errors(
+    phase, monkeypatch, isolated_database, caplog
+):
+    monkeypatch.setenv("DATABASE_URL", TEST_URL)
+    isolated_database.side_effect = None
+    context = isolated_database.return_value
+    error = psycopg.errors.InsufficientPrivilege("private-record-value")
+    if phase == "commit":
+        context.__exit__.side_effect = error
+
+    with pytest.raises(database.DatabaseError) as failure:
+        with database.database_connection():
+            if phase == "query":
+                raise error
+            if phase == "guard":
+                raise database.DatabaseError("private-guard-value")
+
+    assert "phase=transaction" in caplog.text
+    assert "private-record-value" not in caplog.text
+    assert "private-guard-value" not in caplog.text
+    if phase == "guard":
+        assert "Application database safety check failed." in caplog.text
+        assert str(failure.value) == "private-guard-value"
+    else:
+        assert "sqlstate=42501" in caplog.text
+        assert str(failure.value) == "The database operation failed."
+    if phase == "query":
+        assert context.__exit__.call_args.args[1] is error
+
+
+def test_invalid_configuration_is_logged_without_attempting_connection(
+    monkeypatch, isolated_database, caplog
+):
+    monkeypatch.setenv("DATABASE_URL", "https://private-user:private-password@example.test")
+    with pytest.raises(database.DatabaseConfigurationError):
+        with database.database_connection():
+            pytest.fail("Invalid configuration should fail before yielding")
+    assert "phase=configuration type=DatabaseConfigurationError sqlstate=unavailable" in caplog.text
+    assert "Database URL configuration is missing or invalid." in caplog.text
+    assert "private-user" not in caplog.text
+    assert "private-password" not in caplog.text
+    isolated_database.assert_not_called()
